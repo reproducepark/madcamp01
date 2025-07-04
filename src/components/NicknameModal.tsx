@@ -1,42 +1,75 @@
-// components/NicknameModal.tsx
 import React, { useState } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  SafeAreaView,
+  Alert, // Make sure Alert is imported
+} from 'react-native';
 
 interface NicknameModalProps {
-  isVisible: boolean; // 모달의 표시 여부
-  onClose: () => void; // 모달 닫기 요청 시 호출될 함수
-  onSubmit: (nickname: string) => void; // 닉네임 제출 시 호출될 함수
+  isVisible: boolean; // Controls modal visibility
+  onClose: () => void; // Function to call when modal close is requested
+  onSubmit: (nickname: string) => void; // Function to call when nickname is submitted
 }
 
 const NicknameModal: React.FC<NicknameModalProps> = ({ isVisible, onClose, onSubmit }) => {
-  const [nickname, setNickname] = useState(''); // 닉네임 입력 값 상태
+  const [nickname, setNickname] = useState(''); // State for nickname input
 
+  // Handles the submission of the nickname
   const handleSubmit = () => {
     if (nickname.trim().length > 0) {
-      onSubmit(nickname.trim()); // 닉네임 제출 (앞뒤 공백 제거)
-      setNickname(''); // 입력 필드 초기화
+      onSubmit(nickname.trim()); // Submit trimmed nickname
+      setNickname(''); // Clear input field after submission
     } else {
-      // 닉네임이 비어있을 경우 사용자에게 알림 (선택 사항)
-      console.warn('닉네임을 입력해주세요.');
-      // alert('닉네임을 입력해주세요.'); // 사용자에게 직접적인 알림을 원할 경우
+      // Use Alert for user feedback if nickname is empty
+      Alert.alert('알림', '닉네임을 입력해주세요.');
     }
+  };
+
+  // Handles the cancellation of the nickname input
+  const handleCancel = () => {
+    setNickname(''); // Clear input on cancel
+    onClose(); // Close the modal
   };
 
   return (
     <Modal
-      animationType="fade" // 모달이 나타날 때의 애니메이션 종류
-      transparent={true} // 배경을 투명하게 하여 뒤의 화면이 보이도록 함
-      visible={isVisible} // 모달의 현재 표시 여부
-      onRequestClose={onClose} // 안드로이드 백 버튼 클릭 시 모달 닫기
+      animationType="slide" // Slide animation for a full-screen feel
+      transparent={false} // Modal is not transparent
+      visible={isVisible} // Controls the current visibility of the modal
+      onRequestClose={handleCancel} // Callback for when the user requests to close the modal (e.g., Android back button)
     >
-      {/* 키보드가 올라올 때 입력 필드를 가리지 않도록 조정 */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.centeredView}
-      >
-        <View style={styles.modalView}>
-          <Text style={styles.modalTitle}>닉네임 설정</Text>
-          <Text style={styles.modalDescription}>
+      <SafeAreaView style={styles.fullScreenModalContainer}>
+        {/* Header Section: Contains Cancel, Title, and Done buttons */}
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={handleCancel} style={styles.headerButton}>
+            <Text style={styles.headerButtonText}>취소</Text>
+          </TouchableOpacity>
+          <Text style={styles.modalHeaderTitle}>닉네임 설정</Text>
+          <TouchableOpacity
+            onPress={handleSubmit}
+            style={styles.headerButton}
+            disabled={nickname.trim().length === 0} // Disable '완료' button if nickname is empty
+          >
+            <Text
+              style={[
+                styles.headerButtonText,
+                nickname.trim().length === 0 && styles.disabledButtonText, // Apply disabled style
+              ]}
+            >
+              완료
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Body Section for Input */}
+        <View style={styles.modalBody}>
+          <Text style={styles.inputDescription}>
             앱에서 사용할 닉네임을 입력해주세요.
           </Text>
           <TextInput
@@ -45,65 +78,57 @@ const NicknameModal: React.FC<NicknameModalProps> = ({ isVisible, onClose, onSub
             placeholderTextColor="#999"
             value={nickname}
             onChangeText={setNickname}
-            maxLength={15} // 닉네임 최대 길이 제한 (예시)
-            autoCapitalize="none" // 자동 대문자 비활성화
-            autoCorrect={false} // 자동 수정 비활성화
+            maxLength={15} // Limit nickname length
+            autoCapitalize="none" // Disable auto-capitalization
+            autoCorrect={false} // Disable auto-correction
           />
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.cancelButton]}
-              onPress={onClose} // 취소 버튼 클릭 시 모달 닫기
-            >
-              <Text style={styles.buttonText}>취소</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.confirmButton]}
-              onPress={handleSubmit} // 확인 버튼 클릭 시 닉네임 제출
-              disabled={nickname.trim().length === 0} // 닉네임이 비어있으면 버튼 비활성화
-            >
-              <Text style={styles.buttonText}>확인</Text>
-            </TouchableOpacity>
-          </View>
         </View>
-      </KeyboardAvoidingView>
+      </SafeAreaView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  centeredView: {
+  fullScreenModalContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // 반투명 검정 배경
+    backgroundColor: 'white', // Full screen background
+    paddingTop: Platform.OS === 'android' ? 25 : 0, // Adjust for Android status bar
   },
-  modalView: {
-    margin: 20,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 35,
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    width: '80%', // 모달의 너비
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    backgroundColor: '#f8f8f8',
   },
-  modalTitle: {
-    fontSize: 22,
+  modalHeaderTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
   },
-  modalDescription: {
+  headerButton: {
+    padding: 5,
+  },
+  headerButtonText: {
+    fontSize: 18,
+    color: '#f4511e', // Action button color
+    fontWeight: 'bold',
+  },
+  disabledButtonText: {
+    color: '#ccc', // Lighter color for disabled button text
+  },
+  modalBody: {
+    flex: 1, // Takes up available space
+    padding: 15,
+  },
+  inputDescription: {
     fontSize: 16,
     color: '#666',
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: 'left',
+    width: '100%',
   },
   textInput: {
     width: '100%',
@@ -112,33 +137,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 15,
-    marginBottom: 20,
     fontSize: 16,
     color: '#333',
-  },
-  buttonContainer: {
-    flexDirection: 'row', // 가로 정렬
-    justifyContent: 'space-between', // 버튼들 사이에 공간 배치
-    width: '100%',
-  },
-  modalButton: {
-    borderRadius: 8,
-    padding: 12,
-    elevation: 2,
-    flex: 1, // 버튼들이 가로 공간을 균등하게 차지
-    marginHorizontal: 5, // 버튼 사이 여백
-  },
-  cancelButton: {
-    backgroundColor: '#ccc', // 취소 버튼 색상
-  },
-  confirmButton: {
-    backgroundColor: '#FF7E36', // 확인 버튼 색상 (당근색)
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    fontSize: 16,
+    backgroundColor: '#fff',
   },
 });
 
