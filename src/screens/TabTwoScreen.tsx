@@ -1,3 +1,5 @@
+// src/screens/TabTwoScreen.tsx
+
 import React from 'react';
 import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';

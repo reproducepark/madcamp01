@@ -1,5 +1,20 @@
+// src/screens/TabOneScreen.tsx
+
 import React from 'react';
-import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, ActivityIndicator } from 'react-native';
+import {
+  Text,
+  View,
+  ScrollView,
+  SafeAreaView,
+  StyleSheet,
+  FlatList,
+  Image,
+  Dimensions,
+  TouchableOpacity, // TouchableOpacity 추가
+  Modal, // Modal 컴포넌트 추가
+  TextInput, // TextInput 추가
+  Button, // Button 추가
+} from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons'; // Expo에서 제공하는 아이콘 라이브러리
