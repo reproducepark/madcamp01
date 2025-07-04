@@ -106,7 +106,7 @@ export function TabThreeScreen() {
       showsUserLocation
       showsMyLocationButton
     >
-      <Marker coordinate={region} title="내 위치" />
+      {/* <Marker coordinate={region} title="내 위치" /> */}
     </MapView>
   );
 }
