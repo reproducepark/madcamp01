@@ -1,10 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, ActivityIndicator } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons'; // Expo에서 제공하는 아이콘 라이브러리
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import * as Location from 'expo-location';
+import { PostPayload,createPost } from '../../api/post';
+import { UserPayload,OnboardResponse,createUser } from '../../api/user';
+import { BASE_URL } from '@env';
+
 
 const { width } = Dimensions.get('window');
 // 한 행에 3개씩 배치, 좌우 패딩 16씩, 아이템 간 간격 8씩
@@ -63,8 +62,97 @@ const DATA = [
   },
 ];
 
+
 // 탭 1에 해당하는 화면 컴포넌트
 export default function TabOneScreen() {
+  // const [user, setUser] = useState<OnboardResponse>;
+  const [loading, setLoading] = useState(false);
+  const [result,  setResult]  = useState<any>(null);
+  const [error,   setError]   = useState<string|null>(null);
+
+  const testUser = {
+    nickname: 'skb',
+    lat: 37.589498,  // 고려대
+    lon: 127.032413
+};
+
+  // const runTestOnBoard = async () => {
+  //   try {
+  //     const onBoardRes = await createUser(testUser);
+  //     console.log(onBoardRes);
+  //     // return onBoardRes;
+  //     setUser(onBoardRes);
+  //   } catch (e: any) {
+
+  //     console.error('Onboard 에러', e);
+  //     console.log('⚠️ Onboard Axios config:', e.config);
+  //     console.log('⚠️ Onbord Axios response:', e.response?.status, e.response?.data);
+
+  //   }
+
+    
+  // };
+
+  // const runTestPost = async (user:OnboardResponse) => {
+  //   setLoading(true);
+  //   setError(null);
+  //   setResult(null);
+
+  //   const testPost = {
+  //     userId:  user.userId,
+  //     content: '이것은 테스트용 글입니다.',
+  //     lat:      user.lat,
+  //     lon:      user.lon,
+  //     // imageUri는 undefined로 두거나, 실제 선택한 URI를 넣어도 됩니다
+  //     imageUri: undefined,
+  //     adminDong: user.adminDong
+  //   };
+  //   try {
+  //     const res = await createPost(testPost);
+  //     setResult(res);
+  //     console.log(res);
+  //   } catch (e: any) {
+  //     console.error('runTest 에러', e);
+  //     console.log('⚠️ Axios config:', e.config);
+  //     console.log('⚠️ Axios response:', e.response?.status, e.response?.data);
+  //     setError(e.response?.data?.message || e.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  // 3) 화면이 열리면 자동 실행
+  useEffect(() => {
+    (async () => {
+      try {
+        // 1) 온보딩
+        const onBoardRes = await createUser(testUser);
+        // setUser(onBoardRes);
+
+        const testPost = {
+
+          userId:  onBoardRes.userId,
+          content: '이것은 테스트용 글입니다.',
+          lat:      onBoardRes.lat,  
+          lon:      onBoardRes.lon,
+          imageUri: undefined,
+          adminDong: onBoardRes.adminDong
+
+        }
+
+        // 2) 글 작성
+        const postRes = await createPost(testPost);
+      setResult(postRes);
+    } catch (e: any) {
+      console.error(e);
+      setError(e.response?.data?.message || e.message);
+    } finally {
+      setLoading(false);
+    }
+  })();
+}, []);
+
+
   return (
     // <SafeAreaView style={styles.safe}>
 
