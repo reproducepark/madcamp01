@@ -1,7 +1,5 @@
-// src/screens/TabThreeScreen.tsx
-
 import React, {useState, useEffect} from 'react';
-import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, ActivityIndicator } from 'react-native';
+import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, ActivityIndicator, TouchableOpacity } from 'react-native'; // Import TouchableOpacity
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons'; // Expo에서 제공하는 아이콘 라이브러리
@@ -90,6 +88,14 @@ export function TabThreeScreen() {
     })();
   }, []);
 
+  const handleLoadPosts = () => {
+    // 이 함수는 "이 지역의 글 불러오기" 버튼을 눌렀을 때 실행될 동작입니다.
+    // 현재는 아무 동작도 하지 않습니다 (void).
+    console.log("Loading posts for the current region...");
+    // 여기에 해당 지역의 글을 불러오는 로직을 추가할 수 있습니다.
+    // 예: API 호출, 데이터 필터링 등
+  };
+
   if (!region) {
     return (
       <View style={styles.loading}>
@@ -99,69 +105,28 @@ export function TabThreeScreen() {
   }
 
   return (
-    <MapView
-      style={styles.map}
-      provider={PROVIDER_GOOGLE}
-      initialRegion={region}
-      showsUserLocation
-      showsMyLocationButton
-    >
-      {/* <Marker coordinate={region} title="내 위치" /> */}
-    </MapView>
+    <View style={styles.mapContainer}>
+      <MapView
+        style={styles.map}
+        provider={PROVIDER_GOOGLE}
+        initialRegion={region}
+        showsUserLocation
+        showsMyLocationButton
+      >
+        {/* <Marker coordinate={region} title="내 위치" /> */}
+      </MapView>
+
+      <TouchableOpacity
+        style={styles.loadPostsButton}
+        onPress={handleLoadPosts}
+      >
+        <Text style={styles.loadPostsButtonText}>
+          <Ionicons name="location-outline" size={16} color="#007AFF" /> 이 지역의 글 불러오기
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 }
-
-
-// 하단 탭 네비게이터 생성
-// const Tab = createBottomTabNavigator();
-
-// export default function App() {
-//   return (
-//     // NavigationContainer는 전체 네비게이션 구조를 감싸야 합니다.
-//     <NavigationContainer>
-//       {/* Tab.Navigator가 실제 탭 UI를 렌더링합니다. */}
-//       <Tab.Navigator
-//         screenOptions={({ route }) => ({
-//           // 각 탭에 아이콘을 설정합니다.
-//           tabBarIcon: ({ focused, color, size }) => {
-//             let iconName;
-
-//             if (route.name === '연락처') {
-//               iconName = focused ? 'people' : 'people-outline';
-//             } else if (route.name === '갤러리') {
-//               iconName = focused ? 'images' : 'images-outline';
-//             } else if (route.name === '자유주제') {
-//               iconName = focused ? 'star' : 'star-outline';
-//             }
-
-//             // Ionicons 컴포넌트를 사용하여 아이콘을 렌더링합니다.
-//             return <Ionicons name={iconName} size={size} color={color} />;
-//           },
-//           // 활성 탭과 비활성 탭의 색상을 설정합니다.
-//           tabBarActiveTintColor: 'tomato',
-//           tabBarInactiveTintColor: 'gray',
-//           // 탭 바의 스타일을 설정합니다.
-//           tabBarStyle: {
-//             backgroundColor: '#f8f8f8',
-//           },
-//           // 헤더의 스타일을 설정합니다.
-//           headerStyle: {
-//             backgroundColor: '#f4511e',
-//           },
-//           headerTintColor: '#fff',
-//           headerTitleStyle: {
-//             fontWeight: 'bold',
-//           },
-//         })}
-//       >
-//         {/* 각 탭 화면을 정의합니다. */}
-//         <Tab.Screen name="연락처" component={TabOneScreen} />
-//         <Tab.Screen name="갤러리" component={TabTwoScreen} />
-//         <Tab.Screen name="자유주제" component={TabThreeScreen} />
-//       </Tab.Navigator>
-//     </NavigationContainer>
-//   );
-// }
 
 // 공통으로 사용할 스타일 시트
 const styles = StyleSheet.create({
@@ -247,8 +212,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  mapContainer: { // Added a container for MapView and the button
+    flex: 1,
+  },
   map: {
     flex: 1,
   },
-  
+  loadPostsButton: {
+    position: 'absolute', // Position the button absolutely
+    top: 20, // Adjust as needed
+    alignSelf: 'center', // Center the button horizontally
+    backgroundColor: '#fff',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    flexDirection: 'row', // To align icon and text
+    alignItems: 'center',
+  },
+  loadPostsButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#007AFF', // Example color
+    marginLeft: 5, // Space between icon and text
+  },
 });
