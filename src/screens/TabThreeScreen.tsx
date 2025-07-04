@@ -1,3 +1,5 @@
+// src/screens/TabThreeScreen.tsx
+
 import React, {useState, useEffect} from 'react';
 import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
@@ -63,7 +65,7 @@ const DATA = [
   },
 ];
 
-export default function TabThreeScreen() {
+export function TabThreeScreen() {
   const [region, setRegion] = useState<null | {
     latitude: number;
     longitude: number;
@@ -104,7 +106,7 @@ export default function TabThreeScreen() {
       showsUserLocation
       showsMyLocationButton
     >
-      <Marker coordinate={region} title="내 위치" />
+      {/* <Marker coordinate={region} title="내 위치" /> */}
     </MapView>
   );
 }
