@@ -65,7 +65,7 @@ const DATA = [
   },
 ];
 
-export default function TabThreeScreen() {
+export function TabThreeScreen() {
   const [region, setRegion] = useState<null | {
     latitude: number;
     longitude: number;

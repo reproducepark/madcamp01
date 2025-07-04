@@ -67,7 +67,7 @@ const DATA = [
 
 
 // 탭 2에 해당하는 화면 컴포넌트
-export default function TabTwoScreen() {
+export function TabTwoScreen() {
   return (
     <View style={styles.container}>
       {/* <Text style={styles.text}>여기는 탭 2: 이미지 갤러리</Text>
