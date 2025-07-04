@@ -1,16 +1,14 @@
 import React, {useState, useEffect} from 'react';
-import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, ActivityIndicator, TouchableOpacity } from 'react-native'; // Import TouchableOpacity
+import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, ActivityIndicator, TouchableOpacity, Alert } from 'react-native'; // Import Alert for simple feedback
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons'; // Expo에서 제공하는 아이콘 라이브러리
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { Ionicons } from '@expo/vector-icons';
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps'; // Import Region type
 import * as Location from 'expo-location';
 
 const { width } = Dimensions.get('window');
-// 한 행에 3개씩 배치, 좌우 패딩 16씩, 아이템 간 간격 8씩
 const ITEM_MARGIN = 8;
 const ITEM_SIZE = (width - 16 * 2 - ITEM_MARGIN * 2) / 3;
-
 
 const DATA = [
   {
@@ -64,39 +62,69 @@ const DATA = [
 ];
 
 export function TabThreeScreen() {
-  const [region, setRegion] = useState<null | {
-    latitude: number;
-    longitude: number;
-    latitudeDelta: number;
-    longitudeDelta: number;
-  }>(null);
+  // `currentRegion` will store the region currently visible on the map
+  const [currentRegion, setCurrentRegion] = useState<null | Region>(null);
+  const [initialMapRegion, setInitialMapRegion] = useState<null | Region>(null);
+
 
   useEffect(() => {
     (async () => {
-      // 위치 권한 요청
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location access is needed to show your current position on the map.');
+        return;
+      }
 
-      // 현재 위치 받아오기
       const { coords } = await Location.getCurrentPositionAsync({});
-      setRegion({
+      const regionData = {
         latitude: coords.latitude,
         longitude: coords.longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
-      });
+      };
+      setInitialMapRegion(regionData); // Set initial region for MapView
+      setCurrentRegion(regionData); // Also set currentRegion to initial location
     })();
   }, []);
 
   const handleLoadPosts = () => {
-    // 이 함수는 "이 지역의 글 불러오기" 버튼을 눌렀을 때 실행될 동작입니다.
-    // 현재는 아무 동작도 하지 않습니다 (void).
-    console.log("Loading posts for the current region...");
-    // 여기에 해당 지역의 글을 불러오는 로직을 추가할 수 있습니다.
-    // 예: API 호출, 데이터 필터링 등
+    if (currentRegion) {
+      console.log("Loading posts for the current region:", currentRegion);
+      // Here you would send `currentRegion` to your server.
+      // For example, you might make an API call:
+      /*
+      fetch('YOUR_API_ENDPOINT/posts-by-region', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          latitude: currentRegion.latitude,
+          longitude: currentRegion.longitude,
+          latitudeDelta: currentRegion.latitudeDelta,
+          longitudeDelta: currentRegion.longitudeDelta,
+        }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Posts loaded:', data);
+        // Update your UI with the loaded posts (e.g., display markers)
+      })
+      .catch(error => {
+        console.error('Error loading posts:', error);
+      });
+      */
+      Alert.alert(
+        'Region Coordinates',
+        `Latitude: ${currentRegion.latitude}\nLongitude: ${currentRegion.longitude}\nLatitude Delta: ${currentRegion.latitudeDelta}\nLongitude Delta: ${currentRegion.longitudeDelta}`
+      );
+    } else {
+      console.log("Map region not available yet.");
+      Alert.alert('Error', 'Map region not available yet. Please wait for the map to load.');
+    }
   };
 
-  if (!region) {
+  if (!initialMapRegion) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" />
@@ -109,11 +137,12 @@ export function TabThreeScreen() {
       <MapView
         style={styles.map}
         provider={PROVIDER_GOOGLE}
-        initialRegion={region}
+        initialRegion={initialMapRegion} // Use initialMapRegion here
+        onRegionChangeComplete={(region) => setCurrentRegion(region)} // Update currentRegion on map interaction
         showsUserLocation
         showsMyLocationButton
       >
-        {/* <Marker coordinate={region} title="내 위치" /> */}
+        {/* You can add markers here based on posts fetched from the server */}
       </MapView>
 
       <TouchableOpacity
@@ -128,7 +157,6 @@ export function TabThreeScreen() {
   );
 }
 
-// 공통으로 사용할 스타일 시트
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
@@ -137,7 +165,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    // alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
   },
@@ -157,18 +184,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   listItem: {
-    // width:'100%',
     flexDirection:'row',
     justifyContent:'space-between',
     padding: 12,
     borderRadius: 8,
     backgroundColor: '#fafafa',
     marginBottom: 12,
-    // 그림자 효과 (iOS)
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    // 그림자 효과 (Android)
     elevation: 2,
   },
   itemTitle: {
@@ -180,9 +204,7 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 4,
   },
-  list: {
-    // FlatList content padding bottom 추가 가능
-  },
+  list: {},
   row: {
     justifyContent: 'flex-start',
     marginBottom: ITEM_MARGIN,
@@ -195,7 +217,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#eee',
   },
   itemImage: {
-    width: 50,                    // 원하는 썸네일 크기 지정
+    width: 50,
     height: 50,
     borderRadius: 4,
     backgroundColor: '#ddd',
@@ -203,25 +225,22 @@ const styles = StyleSheet.create({
   textContainer:{
     flexDirection:'column'
   },
-  imageContainer: {
-    // justifyContent:'flex-end'
-
-  },
+  imageContainer: {},
   loading: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mapContainer: { // Added a container for MapView and the button
+  mapContainer: {
     flex: 1,
   },
   map: {
     flex: 1,
   },
   loadPostsButton: {
-    position: 'absolute', // Position the button absolutely
-    top: 20, // Adjust as needed
-    alignSelf: 'center', // Center the button horizontally
+    position: 'absolute',
+    top: 20,
+    alignSelf: 'center',
     backgroundColor: '#fff',
     paddingVertical: 10,
     paddingHorizontal: 15,
@@ -231,13 +250,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    flexDirection: 'row', // To align icon and text
+    flexDirection: 'row',
     alignItems: 'center',
   },
   loadPostsButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#007AFF', // Example color
-    marginLeft: 5, // Space between icon and text
+    color: '#007AFF',
+    marginLeft: 5,
   },
 });
