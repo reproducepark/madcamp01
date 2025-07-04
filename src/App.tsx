@@ -6,6 +6,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+declare global {
+  // eslint-disable-next-line no-var
+  var AsyncStorage: any;
+}
+if (__DEV__) { // 개발 모드에서만 실행되도록 보호
+  global.AsyncStorage = AsyncStorage;
+  console.log('AsyncStorage object exposed globally for debugging.');
+}
+
 import { TabOneScreen } from './screens/TabOneScreen';
 import { TabTwoScreen } from './screens/TabTwoScreen';
 import { TabThreeScreen } from './screens/TabThreeScreen';
@@ -40,7 +49,7 @@ export default function App() {
   // 온보딩 완료 및 닉네임 저장 처리 함수
   const handleOnboardingComplete = async (nickname: string) => {
     try {
-      const newUserID = crypto.randomUUID();
+      const newUserID = 'test-uuid-12345';
       await AsyncStorage.setItem('userID', newUserID);
       await AsyncStorage.setItem('userNickname', nickname); // 닉네임 저장
       setIsFirstLaunch(false);
