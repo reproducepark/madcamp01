@@ -31,6 +31,7 @@ export default function App() {
     const checkOnboardingStatus = async () => {
       try {
         const userID = await AsyncStorage.getItem('userID');
+
         if (userID === null) {
           setIsFirstLaunch(true);
         } else {
@@ -53,9 +54,21 @@ export default function App() {
     try {
       // const newUserID = 'test-uuid-12345';
 
-      const { adminDong, lat, lon, nickname, userId} = user;
-      await AsyncStorage.setItem('userID', userId);
-      await AsyncStorage.setItem('userNickname', nickname); // 닉네임 저장
+      const { nickname, userId, adminDong, lat, lon} = user;
+      // await AsyncStorage.setItem('userID', userId);
+      // await AsyncStorage.setItem('userNickname', nickname); // 닉네임 저장
+      // await AsyncStorage.setItem('userLat', String(lat)); // 닉네임 저장
+      // await AsyncStorage.setItem('userLon', String(lon)); // 닉네임 저장
+      // await AsyncStorage.setItem('userAdminDong', adminDong); // 닉네임 저장
+
+      await AsyncStorage.multiSet([
+        ['userID',        userId         ],
+        ['userNickname',  nickname       ],
+        ['userLat',       String(lat)    ],
+        ['userLon',       String(lon)    ],
+        ['userAdminDong', adminDong      ],
+      ]);
+
       setIsFirstLaunch(false);
       console.log('New userID saved:', userId);
       console.log('User nickname saved:', nickname);

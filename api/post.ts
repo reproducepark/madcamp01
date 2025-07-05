@@ -3,6 +3,7 @@ import { BASE_URL } from '@env';
 
 export interface PostPayload {
   userId: string;
+  title : string;
   content: string;
   lat: number;
   lon: number;
@@ -22,17 +23,18 @@ export interface OnboardResponse {
 
 
 export async function createPost(post: PostPayload) {
-    const { userId, content, lat, lon, adminDong, imageUri } = post;
+    const { userId, title, content, lat, lon, adminDong, imageUri } = post;
     const formData = new FormData();
 
     console.log("포스트 요청 :", post);
     console.log("포스트 요청 URL :", `${BASE_URL}/posts`);
 
     formData.append('userId', userId);
+    formData.append('title', title);
     formData.append('content', content);
     formData.append('lat', String(lat));
     formData.append('lon', String(lon));
-    // formData.append('adminDong', adminDong);
+    formData.append('adminDong', adminDong);
 
     if (imageUri) {
         formData.append('image',{

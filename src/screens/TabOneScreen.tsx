@@ -4,6 +4,16 @@ import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dime
 import { PostPayload,createPost } from '../../api/post';
 import { UserPayload,OnboardResponse,createUser } from '../../api/user';
 import { BASE_URL } from '@env';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// declare global {
+//   // eslint-disable-next-line no-var
+//   var AsyncStorage: any;
+// }
+// if (__DEV__) { // 개발 모드에서만 실행되도록 보호
+//   global.AsyncStorage = AsyncStorage;
+//   console.log('AsyncStorage object exposed globally for debugging.');
+// }
 
 
 // WriteModal 컴포넌트 임포트
@@ -91,13 +101,38 @@ export function TabOneScreen() {
 // }, []);
 
 
-  const handleAddItem = (title: string, description: string) => {
+  const handleAddItem = async (title: string, description: string) => {
     const newItem = {
       id: String(listData.length + 1),
       image: require('../../assets/adaptive-icon.png'), // 기본 이미지
       title: title,
       description: description,
     };
+
+    const userID = await AsyncStorage.getItem('userID');
+    const userLat = await AsyncStorage.getItem('userLat');
+    const userLon = await AsyncStorage.getItem('userLon');
+    const userAdminDong = await AsyncStorage.getItem('userAdminDong');
+
+    try {
+
+      const newPost = {
+        userId: userID,
+        title: title,
+        content : description,
+        lat: userLat,
+        lon: userLon,
+        imageUri: undefined,
+        adminDong: userAdminDong
+      }
+
+      const postRes = await createPost(newPost);
+      
+
+    } catch(e:any) {
+      console.error(e);
+    }
+
     setListData([newItem, ...listData]); // 새 아이템을 목록 맨 앞에 추가
     setModalVisible(false);
   };
