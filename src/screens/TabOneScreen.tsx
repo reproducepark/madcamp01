@@ -46,49 +46,49 @@ export function TabOneScreen() {
   // const [user, setUser] = useState<OnboardResponse>;
   const [modalVisible, setModalVisible] = useState(false);
   const [listData, setListData] = useState(initialData);
-  const [loading, setLoading] = useState(false);
-  const [result,  setResult]  = useState<any>(null);
-  const [error,   setError]   = useState<string|null>(null);
+  // const [loading, setLoading] = useState(false);
+  // const [result,  setResult]  = useState<any>(null);
+  // const [error,   setError]   = useState<string|null>(null);
 
-  const testUser = {
-    nickname: 'skb'+Date.now(),
-    lat: 37.589498,  // 고려대
-    lon: 127.032413
-};
+//   const testUser = {
+//     nickname: 'skb'+Date.now(),
+//     lat: 37.589498,  // 고려대
+//     lon: 127.032413
+// };
 
   // 3) 화면이 열리면 자동 실행
-  useEffect(() => {
-    (async () => {
-      try {
-        // 1) 온보딩
-        const onBoardRes = await createUser(testUser);
-        // setUser(onBoardRes);
+//   useEffect(() => {
+//     (async () => {
+//       try {
+//         // 1) 온보딩
+//         // const onBoardRes = await createUser(testUser);
+//         // setUser(onBoardRes);
 
-        const testPost = {
+//         const testPost = {
 
-          userId:  onBoardRes.userId,
-          content: '이것은 테스트용 글입니다.',
-          lat:      onBoardRes.lat,  
-          lon:      onBoardRes.lon,
-          imageUri: undefined,
-          adminDong: onBoardRes.adminDong
+//           userId:  onBoardRes.userId,
+//           content: '이것은 테스트용 글입니다.',
+//           lat:      onBoardRes.lat,  
+//           lon:      onBoardRes.lon,
+//           imageUri: undefined,
+//           adminDong: onBoardRes.adminDong
 
-        }
+//         }
 
-        // 2) 글 작성
-        const postRes = await createPost(testPost);
-      setResult(postRes);
-    } catch (e: any) {
-      console.error(e.config);
-      console.error(e.message);
-      console.error(e.request);
-      console.error(e.response);
-      setError(e.response?.data?.message || e.message);
-    } finally {
-      setLoading(false);
-    }
-  })();
-}, []);
+//         // 2) 글 작성
+//         const postRes = await createPost(testPost);
+//       setResult(postRes);
+//     } catch (e: any) {
+//       console.error(e.config);
+//       console.error(e.message);
+//       console.error(e.request);
+//       console.error(e.response);
+//       setError(e.response?.data?.message || e.message);
+//     } finally {
+//       setLoading(false);
+//     }
+//   })();
+// }, []);
 
 
   const handleAddItem = (title: string, description: string) => {

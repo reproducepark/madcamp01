@@ -19,6 +19,7 @@ import { TabOneScreen } from './screens/TabOneScreen';
 import { TabTwoScreen } from './screens/TabTwoScreen';
 import { TabThreeScreen } from './screens/TabThreeScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
+import { OnboardResponse } from '../api/post';
 
 const Tab = createBottomTabNavigator();
 
@@ -47,13 +48,16 @@ export default function App() {
   }, []);
 
   // 온보딩 완료 및 닉네임 저장 처리 함수
-  const handleOnboardingComplete = async (nickname: string) => {
+  // const handleOnboardingComplete = async (nickname: string) => {
+  const handleOnboardingComplete = async (user: OnboardResponse) => {
     try {
-      const newUserID = 'test-uuid-12345';
-      await AsyncStorage.setItem('userID', newUserID);
+      // const newUserID = 'test-uuid-12345';
+
+      const { adminDong, lat, lon, nickname, userId} = user;
+      await AsyncStorage.setItem('userID', userId);
       await AsyncStorage.setItem('userNickname', nickname); // 닉네임 저장
       setIsFirstLaunch(false);
-      console.log('New userID saved:', newUserID);
+      console.log('New userID saved:', userId);
       console.log('User nickname saved:', nickname);
     } catch (error) {
       console.error('Error saving userID or nickname:', error);
