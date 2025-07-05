@@ -42,22 +42,24 @@ export async function createPost(post: PostPayload) {
         } as any); //여기 이해 못함
     }
 
-    console.log(`${BASE_URL}/posts`);
-    const postRes = await axios.post(`${BASE_URL}/posts`, formData);
+    // console.log(`${BASE_URL}/posts`);
+    const postRes = await fetch(`${BASE_URL}/posts`, {
+        method: 'POST',
+        body: formData,
+    // 헤더를 직접 설정하지 마세요!
+    // fetch가 자동으로 "Content-Type: multipart/form-data; boundary=…"를 붙여 줍니다.
+    });
 
-    console.log("포스트 요청 완료");
-    console.log("포스트 응답 :", postRes.data)
+    if (!postRes.ok) {
+        const text = await postRes.text();
+        throw new Error(`HTTP ${postRes.status}: ${text}`);
+    }
+
+    const data=await postRes.json()
+
+    console.log("포스트 응답 :", data)
     
-    // await axios.post(
-    //     `${BASE_URL}/posts`,
-    //     formData,
-    //     {
-
-    //     }
-    // );
-
-    
-    return postRes.data
+    return data
 
 }
 
