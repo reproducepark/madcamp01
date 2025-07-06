@@ -1,3 +1,5 @@
+//api/post.ts
+
 import axios from 'axios';
 import { BASE_URL } from '@env';
 
@@ -65,4 +67,29 @@ export async function createPost(post: PostPayload) {
 
 }
 
+export interface PostResponse {
+  id: string;
+  user_id: string;
+  title: string;
+  content: string;
+  image_url: string | null; // Assuming image_url can be null if no image
+  admin_dong: string;
+  created_at: string; // Assuming created_at is a string (e.g., ISO format)
+  nickname: string;
+}
 
+export async function getPostById(postId: string): Promise<PostResponse> {
+  console.log("Fetching post with ID:", postId);
+  console.log("Request URL:", `${BASE_URL}/posts/${postId}`);
+
+  const response = await fetch(`${BASE_URL}/posts/${postId}`);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+  }
+
+  const data: PostResponse = await response.json();
+  console.log("Post response:", data);
+  return data;
+}

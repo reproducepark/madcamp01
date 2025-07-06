@@ -6,22 +6,32 @@ import { Ionicons } from '@expo/vector-icons';
 import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-declare global {
-  // eslint-disable-next-line no-var
-  var AsyncStorage: any;
-}
-if (__DEV__) { // 개발 모드에서만 실행되도록 보호
-  global.AsyncStorage = AsyncStorage;
-  console.log('AsyncStorage object exposed globally for debugging.');
-}
+// Import the new Stack Navigator for Tab One
+import { TabOneNavigator } from './navigation/TabOneStack'; // <--- NEW IMPORT
 
-import { TabOneScreen } from './screens/TabOneScreen';
 import { TabTwoScreen } from './screens/TabTwoScreen';
 import { TabThreeScreen } from './screens/TabThreeScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import { OnboardResponse } from '../api/post';
 
-const Tab = createBottomTabNavigator();
+declare global {
+  // eslint-disable-next-line no-var
+  var AsyncStorage: any;
+}
+if (__DEV__) {
+  global.AsyncStorage = AsyncStorage;
+  console.log('AsyncStorage object exposed globally for debugging.');
+}
+
+// Define the RootTabParamList for the Bottom Tab Navigator
+// This now correctly points to the TabOneNavigator for the '리스트' tab.
+export type RootTabParamList = {
+  리스트: undefined; // This tab will render TabOneNavigator
+  갤러리: undefined;
+  지도: undefined;
+};
+
+const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -48,18 +58,9 @@ export default function App() {
     checkOnboardingStatus();
   }, []);
 
-  // 온보딩 완료 및 닉네임 저장 처리 함수
-  // const handleOnboardingComplete = async (nickname: string) => {
   const handleOnboardingComplete = async (user: OnboardResponse) => {
     try {
-      // const newUserID = 'test-uuid-12345';
-
       const { nickname, userId, adminDong, lat, lon} = user;
-      // await AsyncStorage.setItem('userID', userId);
-      // await AsyncStorage.setItem('userNickname', nickname); // 닉네임 저장
-      // await AsyncStorage.setItem('userLat', String(lat)); // 닉네임 저장
-      // await AsyncStorage.setItem('userLon', String(lon)); // 닉네임 저장
-      // await AsyncStorage.setItem('userAdminDong', adminDong); // 닉네임 저장
 
       await AsyncStorage.multiSet([
         ['userID',        userId         ],
@@ -88,7 +89,6 @@ export default function App() {
   }
 
   if (isFirstLaunch) {
-    // 온보딩 스크린에 닉네임 입력 완료 콜백 전달
     return <OnboardingScreen onFinishOnboarding={handleOnboardingComplete} />;
   }
 
@@ -140,8 +140,8 @@ export default function App() {
       >
         <Tab.Screen
           name="리스트"
-          component={TabOneScreen}
-          options={{ title: '리스트' }}
+          component={TabOneNavigator} // <--- Use the new nested Stack Navigator here
+          options={{ title: '리스트', headerShown: false }} // <--- Hide the header for the tab itself, as the nested stack will manage its own header.
         />
         <Tab.Screen
           name="갤러리"

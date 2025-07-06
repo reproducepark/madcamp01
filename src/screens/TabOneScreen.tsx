@@ -1,18 +1,20 @@
 // screens/TabOneScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { PostPayload,createPost } from '../../api/post';
-import { UserPayload,OnboardResponse,createUser } from '../../api/user';
+import { PostPayload, createPost, getPostById } from '../../api/post';
+import { UserPayload, OnboardResponse, createUser } from '../../api/user';
 import { BASE_URL } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 
+// Import the specific parameter list for TabOne's stack
+import { TabOneStackParamList } from '../navigation/TabOneStack'; // <--- NEW IMPORT
 
 // WriteModal 컴포넌트 임포트
 import { WriteModal } from '../components/WriteModal';
 
-const { width } = Dimensions.get('window'); // Dimensions 사용
+const { width } = Dimensions.get('window');
 
-// 초기 데이터
 const initialData = [
   {
     id: '1',
@@ -26,7 +28,6 @@ const initialData = [
     title: '카페 B',
     description: '카페 B입니다',
   },
-  // ... 기타 데이터
   {
     id: '3',
     image: require('../../assets/icon.png'),
@@ -42,20 +43,34 @@ const initialData = [
 ];
 
 
-// 탭 1에 해당하는 화면 컴포넌트
 export function TabOneScreen() {
-  // const [user, setUser] = useState<OnboardResponse>;
+  // Use TabOneStackParamList for the navigation prop type
+  const navigation = useNavigation<NavigationProp<TabOneStackParamList>>(); // <--- CHANGED TYPE
   const [modalVisible, setModalVisible] = useState(false);
   const [listData, setListData] = useState(initialData);
 
-  const handleAddItem = async (title: string, description: string, imageUri?: string) => {
-    const newItem = {
-      id: String(listData.length + 1),
-      image: imageUri ? {uri: imageUri} : require('../../assets/adaptive-icon.png'), // 기본 이미지
-      title: title,
-      description: description,
+  // useEffect for fetching posts (currently commented out)
+  /*
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        // You would call an API to get a list of posts here
+        // const fetchedPosts = await getPosts();
+        // setListData(fetchedPosts.map(post => ({
+        //   id: post.id,
+        //   image: post.image_url ? { uri: post.image_url } : require('../../assets/adaptive-icon.png'),
+        //   title: post.title,
+        //   description: post.content,
+        // })));
+      } catch (e) {
+        console.error("Failed to fetch posts:", e);
+      }
     };
+    fetchPosts();
+  }, []);
+  */
 
+  const handleAddItem = async (title: string, description: string, imageUri?: string) => {
     const userID = await AsyncStorage.getItem('userID');
     const userLat = await AsyncStorage.getItem('userLat');
     const userLon = await AsyncStorage.getItem('userLon');
@@ -66,38 +81,52 @@ export function TabOneScreen() {
     if (!userAdminDong) throw new Error('행정동 정보가 없습니다.');
 
     try {
-
-      const newPost = {
+      const newPost: PostPayload = {
         userId: userID,
         title: title,
         content : description,
-        lat: Number(userLat), //asyncstorage에는 string으로 저장되어있음
-        lon: Number(userLon), //asyncstorage에는 string으로 저장되어있음
+        lat: Number(userLat),
+        lon: Number(userLon),
         imageUri,
         adminDong: userAdminDong,
-      }
+      };
 
       const postRes = await createPost(newPost);
-      
+      console.log("Post created successfully:", postRes);
+
+      const newItem = {
+        id: postRes.id || String(listData.length + 1),
+        image: imageUri ? {uri: imageUri} : require('../../assets/adaptive-icon.png'),
+        title: title,
+        description: description,
+      };
+      setListData([newItem, ...listData]);
 
     } catch(e:any) {
-      console.error(e);
+      console.error("Error creating post:", e);
+    } finally {
+      setModalVisible(false);
     }
+  };
 
-    setListData([newItem, ...listData]); // 새 아이템을 목록 맨 앞에 추가
-    setModalVisible(false);
+  const handleItemPress = (itemId: string) => {
+    // Navigate to 'PostDetail' within the current stack
+    console.log("Navigating to PostDetail with itemId:", itemId);
+    navigation.navigate('PostDetail', { postId: itemId });
   };
 
   const renderItem = ({ item }: { item: typeof initialData[0] }) => (
-    <View style={styles.listItem}>
-      <View style={styles.textContainer}>
-        <Text style={styles.itemTitle}>아이템 제목: {item.title}</Text>
-        <Text style={styles.itemSubtitle}>아이템 설명: {item.description}</Text>
+    <TouchableOpacity onPress={() => handleItemPress(item.id)}>
+      <View style={styles.listItem}>
+        <View style={styles.textContainer}>
+          <Text style={styles.itemTitle}>아이템 제목: {item.title}</Text>
+          <Text style={styles.itemSubtitle}>아이템 설명: {item.description}</Text>
+        </View>
+        <View style={styles.imageContainer}>
+          <Image source={item.image} style={styles.itemImage} />
+        </View>
       </View>
-      <View style={styles.imageContainer}>
-        <Image source={item.image} style={styles.itemImage} />
-      </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -113,7 +142,6 @@ export function TabOneScreen() {
           renderItem={renderItem}
         />
 
-        {/* 글쓰기 버튼 (FAB) */}
         <TouchableOpacity
           style={styles.fab}
           onPress={() => setModalVisible(true)}
@@ -121,7 +149,6 @@ export function TabOneScreen() {
           <Text style={styles.fabText}>+</Text>
         </TouchableOpacity>
 
-        {/* 글쓰기 모달 창 컴포넌트 */}
         <WriteModal
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
