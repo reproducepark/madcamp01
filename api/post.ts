@@ -41,7 +41,7 @@ export async function createPost(post: PostPayload) {
             uri: imageUri,
             name: imageUri.split('/').pop() || 'photo.jpg',
             type: 'image/jpeg',
-        } as any); //여기 이해 못함
+        } as any); 
     }
 
     // console.log(`${BASE_URL}/posts`);

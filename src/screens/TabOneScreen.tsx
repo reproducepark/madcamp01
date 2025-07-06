@@ -6,15 +6,6 @@ import { UserPayload,OnboardResponse,createUser } from '../../api/user';
 import { BASE_URL } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// declare global {
-//   // eslint-disable-next-line no-var
-//   var AsyncStorage: any;
-// }
-// if (__DEV__) { // 개발 모드에서만 실행되도록 보호
-//   global.AsyncStorage = AsyncStorage;
-//   console.log('AsyncStorage object exposed globally for debugging.');
-// }
-
 
 // WriteModal 컴포넌트 임포트
 import { WriteModal } from '../components/WriteModal';
@@ -56,55 +47,11 @@ export function TabOneScreen() {
   // const [user, setUser] = useState<OnboardResponse>;
   const [modalVisible, setModalVisible] = useState(false);
   const [listData, setListData] = useState(initialData);
-  // const [loading, setLoading] = useState(false);
-  // const [result,  setResult]  = useState<any>(null);
-  // const [error,   setError]   = useState<string|null>(null);
 
-//   const testUser = {
-//     nickname: 'skb'+Date.now(),
-//     lat: 37.589498,  // 고려대
-//     lon: 127.032413
-// };
-
-  // 3) 화면이 열리면 자동 실행
-//   useEffect(() => {
-//     (async () => {
-//       try {
-//         // 1) 온보딩
-//         // const onBoardRes = await createUser(testUser);
-//         // setUser(onBoardRes);
-
-//         const testPost = {
-
-//           userId:  onBoardRes.userId,
-//           content: '이것은 테스트용 글입니다.',
-//           lat:      onBoardRes.lat,  
-//           lon:      onBoardRes.lon,
-//           imageUri: undefined,
-//           adminDong: onBoardRes.adminDong
-
-//         }
-
-//         // 2) 글 작성
-//         const postRes = await createPost(testPost);
-//       setResult(postRes);
-//     } catch (e: any) {
-//       console.error(e.config);
-//       console.error(e.message);
-//       console.error(e.request);
-//       console.error(e.response);
-//       setError(e.response?.data?.message || e.message);
-//     } finally {
-//       setLoading(false);
-//     }
-//   })();
-// }, []);
-
-
-  const handleAddItem = async (title: string, description: string) => {
+  const handleAddItem = async (title: string, description: string, imageUri?: string) => {
     const newItem = {
       id: String(listData.length + 1),
-      image: require('../../assets/adaptive-icon.png'), // 기본 이미지
+      image: imageUri ? {uri: imageUri} : require('../../assets/adaptive-icon.png'), // 기본 이미지
       title: title,
       description: description,
     };
@@ -114,16 +61,20 @@ export function TabOneScreen() {
     const userLon = await AsyncStorage.getItem('userLon');
     const userAdminDong = await AsyncStorage.getItem('userAdminDong');
 
+    if (!userID)        throw new Error('로그인이 필요합니다.');
+    if (!userLat || !userLon) throw new Error('위치 정보가 없습니다.');
+    if (!userAdminDong) throw new Error('행정동 정보가 없습니다.');
+
     try {
 
       const newPost = {
         userId: userID,
         title: title,
         content : description,
-        lat: userLat,
-        lon: userLon,
-        imageUri: undefined,
-        adminDong: userAdminDong
+        lat: Number(userLat), //asyncstorage에는 string으로 저장되어있음
+        lon: Number(userLon), //asyncstorage에는 string으로 저장되어있음
+        imageUri,
+        adminDong: userAdminDong,
       }
 
       const postRes = await createPost(newPost);
