@@ -2,11 +2,14 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import NicknameModal from '../components/NicknameModal'; // 닉네임 모달 임포트
+import { UserPayload,OnboardResponse,createUser } from '../../api/user';
 import { Ionicons } from '@expo/vector-icons'; // Ionicons 임포트 (드롭다운 아이콘용)
+import * as Location from 'expo-location';
 
 // 온보딩 완료 시 호출될 콜백 함수를 위한 Props 타입 정의
 interface OnboardingScreenProps {
-  onFinishOnboarding: (nickname: string) => void; // 닉네임을 인자로 받도록 변경
+  // onFinishOnboarding: (nickname: string) => void; // 닉네임을 인자로 받도록 변경
+  onFinishOnboarding: (user: OnboardResponse) => void; // 유저를 인자로 받도록 변경
 }
 
 const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onFinishOnboarding }) => {
@@ -16,9 +19,27 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onFinishOnboarding 
     setModalVisible(true); // "시작하기" 버튼 클릭 시 닉네임 모달 열기
   };
 
-  const handleNicknameSubmit = (nickname: string) => {
+  // async로 수정
+  const handleNicknameSubmit = async (nickname: string) => {
     setModalVisible(false); // 모달 닫기
-    onFinishOnboarding(nickname); // App.tsx로 닉네임을 전달하며 온보딩 완료 처리
+    // onFinishOnboarding(nickname); // App.tsx로 닉네임을 전달하며 온보딩 완료 처리
+    const { coords } = await Location.getCurrentPositionAsync({});
+
+    try {
+      // 1) 서버에 유저 온보딩 요청
+      const onBoardRes = await createUser({
+        nickname,
+        lat: coords.latitude,
+        lon: coords.longitude
+    });
+
+    // 2) 성공하면 App.tsx로 userId 넘기기
+    // onFinishOnboarding(onBoardRes.userId);
+    onFinishOnboarding(onBoardRes);
+    } catch (e) {
+      console.error('온보딩 API 에러', e);
+      // 실패 처리 UI 띄워도 좋습니다.
+    }
   };
 
   return (
