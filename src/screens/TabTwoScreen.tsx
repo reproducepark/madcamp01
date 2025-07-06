@@ -1,15 +1,15 @@
-// src/screens/TabTwoScreen.tsx
-
+// screens/TabTwoScreen.tsx
 import React from 'react';
-import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, ActivityIndicator } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { NavigationContainer, useNavigation, NavigationProp } from '@react-navigation/native'; // useNavigation, NavigationProp 임포트
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons'; // Expo에서 제공하는 아이콘 라이브러리
+import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 
+import { TabTwoStackParamList } from '../navigation/TabTwoStack'; // TabTwoStackParamList 임포트
+
 const { width } = Dimensions.get('window');
-// 한 행에 3개씩 배치, 좌우 패딩 16씩, 아이템 간 간격 8씩
 const ITEM_MARGIN = 8;
 const ITEM_SIZE = (width - 16 * 2 - ITEM_MARGIN * 2) / 3;
 
@@ -68,24 +68,31 @@ const DATA = [
 
 // 탭 2에 해당하는 화면 컴포넌트
 export function TabTwoScreen() {
-  return (
-    <View style={styles.container}>
-      {/* <Text style={styles.text}>여기는 탭 2: 이미지 갤러리</Text>
-      <Text style={styles.subText}>20개 이상의 이미지를 보여줄 갤러리 페이지입니다.</Text> */}
+  // useNavigation 훅을 사용하여 TabTwoStackParamList 타입을 지정합니다.
+  const navigation = useNavigation<NavigationProp<TabTwoStackParamList>>();
 
+  const handleItemPress = (itemId: string) => {
+    console.log("갤러리 아이템 클릭됨:", itemId);
+    // PostDetail 화면으로 이동하면서 postId를 파라미터로 전달합니다.
+    navigation.navigate('PostDetail', { postId: itemId });
+  };
+
+  return (
+    // SafeAreaView를 사용하여 내용이 노치/상태 표시줄 영역을 침범하지 않도록 합니다.
+    <SafeAreaView style={styles.safe}>
       <FlatList
         data={DATA}
-        keyExtractor={(_, idx) => idx.toString()}
+        keyExtractor={(item) => item.id}
         numColumns={3}
         contentContainerStyle={styles.list}
         columnWrapperStyle={styles.row}
         renderItem={({ item }) => (
-          <Image source={item.image} style={styles.image} />
+          <TouchableOpacity onPress={() => handleItemPress(item.id)}>
+            <Image source={item.image} style={styles.image} />
+          </TouchableOpacity>
         )}
       />
-    </View>
-
-    
+    </SafeAreaView>
   );
 }
 
@@ -100,7 +107,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     // alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    padding: 20, // 이 padding은 SafeAreaView 내부의 내용에 영향을 줍니다.
   },
   text: {
     fontSize: 24,
@@ -143,6 +150,8 @@ const styles = StyleSheet.create({
   },
   list: {
     // FlatList content padding bottom 추가 가능
+    paddingHorizontal: 16, // 좌우 여백 추가
+    paddingTop: 0, // SafeAreaView가 상단 여백을 처리하므로 여기서는 0으로 설정
   },
   row: {
     justifyContent: 'flex-start',
@@ -168,5 +177,5 @@ const styles = StyleSheet.create({
     // justifyContent:'flex-end'
 
   }
-  
+
 });

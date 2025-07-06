@@ -6,10 +6,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Import the new Stack Navigator for Tab One
-import { TabOneNavigator } from './navigation/TabOneStack'; // <--- NEW IMPORT
+import { TabOneNavigator } from './navigation/TabOneStack'; // TabOne Navigator 임포트
+import { TabTwoNavigator } from './navigation/TabTwoStack'; // <--- NEW IMPORT: TabTwo Navigator 임포트
 
-import { TabTwoScreen } from './screens/TabTwoScreen';
 import { TabThreeScreen } from './screens/TabThreeScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import { OnboardResponse } from '../api/post';
@@ -23,11 +22,10 @@ if (__DEV__) {
   console.log('AsyncStorage object exposed globally for debugging.');
 }
 
-// Define the RootTabParamList for the Bottom Tab Navigator
-// This now correctly points to the TabOneNavigator for the '리스트' tab.
+// Bottom Tab Navigator의 파라미터 목록을 정의합니다.
 export type RootTabParamList = {
-  리스트: undefined; // This tab will render TabOneNavigator
-  갤러리: undefined;
+  리스트: undefined; // 이 탭은 TabOneNavigator를 렌더링
+  갤러리: undefined; // <--- CHANGED: 이 탭은 TabTwoNavigator를 렌더링
   지도: undefined;
 };
 
@@ -140,13 +138,13 @@ export default function App() {
       >
         <Tab.Screen
           name="리스트"
-          component={TabOneNavigator} // <--- Use the new nested Stack Navigator here
-          options={{ title: '리스트', headerShown: false }} // <--- Hide the header for the tab itself, as the nested stack will manage its own header.
+          component={TabOneNavigator}
+          options={{ title: '리스트', headerShown: false }}
         />
         <Tab.Screen
           name="갤러리"
-          component={TabTwoScreen}
-          options={{ title: '갤러리' }}
+          component={TabTwoNavigator} // <--- CHANGED: TabTwoNavigator를 사용
+          options={{ title: '갤러리', headerShown: false }} // <--- 헤더 숨기기
         />
         <Tab.Screen
           name="지도"
