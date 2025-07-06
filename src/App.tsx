@@ -43,6 +43,7 @@ export default function App() {
         if (userID === null) {
           setIsFirstLaunch(true);
         } else {
+          // console.log("현재 userID",userID);
           setIsFirstLaunch(false);
         }
       } catch (error) {

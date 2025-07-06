@@ -73,7 +73,7 @@ export async function createPost(post: PostPayload) {
 
     if (!postRes.ok) {
         const text = await postRes.text();
-        throw new Error(`HTTP ${postRes.status}: ${text}`);
+        throw new Error(`HTTP ${postRes.status}: ${text} ${postRes.statusText}`);
     }
 
     const data=await postRes.json()
@@ -130,4 +130,39 @@ export async function getPostsInViewport(viewport: Viewport): Promise<PostRespon
   console.log("Posts in viewport response:", data);
 
   return data.postsInViewport as PostResponse[];
+}
+export async function getNearbyPosts(lat: number,lon: number) {
+  
+console.log('Fetching nearby posts for:', { lat, lon });
+
+  const url = `${BASE_URL}/posts/nearby`
+    + `?currentLat=${encodeURIComponent(lat.toString())}`
+    + `&currentLon=${encodeURIComponent(lon.toString())}`;
+
+    const userId = await AsyncStorage.getItem('userID');
+    // console.log('DEBUG ▶ userID:', userId);
+    if (!userId) {
+    throw new Error('로그인된 유저ID가 없습니다. 먼저 온보딩을 진행하세요.');
+    }
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+
+  const { nearbyPosts } = data;
+  if (nearbyPosts.length > 0) {
+    console.log(`첫 번째 근처 글 제목: ${nearbyPosts[0].title}`);
+  } else {
+    console.log('근처에 게시물이 없습니다.');
+  }
+
+  return data;
 }

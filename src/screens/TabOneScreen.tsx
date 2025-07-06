@@ -1,7 +1,7 @@
 // screens/TabOneScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { PostPayload, createPost, getPostById } from '../../api/post';
+import { PostPayload, createPost, getPostById, getNearbyPosts } from '../../api/post';
 import { UserPayload, OnboardResponse, createUser } from '../../api/user';
 import { BASE_URL } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -49,26 +49,35 @@ export function TabOneScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [listData, setListData] = useState(initialData);
 
-  // useEffect for fetching posts (currently commented out)
-  /*
   useEffect(() => {
-    const fetchPosts = async () => {
+    (async () => {
       try {
-        // You would call an API to get a list of posts here
-        // const fetchedPosts = await getPosts();
-        // setListData(fetchedPosts.map(post => ({
-        //   id: post.id,
-        //   image: post.image_url ? { uri: post.image_url } : require('../../assets/adaptive-icon.png'),
-        //   title: post.title,
-        //   description: post.content,
-        // })));
-      } catch (e) {
-        console.error("Failed to fetch posts:", e);
+        // 1) 로컬에 저장된 좌표 꺼내기
+        const rawLat = await AsyncStorage.getItem('userLat');
+        const rawLon = await AsyncStorage.getItem('userLon');
+        if (!rawLat || !rawLon) {
+          console.error('위치 정보 없음', '먼저 위치를 받아 와야 합니다.');
+          return;
+        }
+        const lat = Number(rawLat);
+        const lon = Number(rawLon);
+
+        // 2) 근처 글만 조회
+        const data = await getNearbyPosts(lat, lon);
+        // data.nearbyPosts가 Post[] 타입이라고 가정
+
+        // 3) listData에 nearbyPosts만 넣기
+        setListData(data.nearbyPosts);
+
+      } catch (e: any) {
+        console.error('근처 글 조회 실패', e);
+        // Alert.alert('오류', e.message);
+      // } finally {
+      //   setLoading(false);
+      // }
       }
-    };
-    fetchPosts();
+    })();
   }, []);
-  */
 
   const handleAddItem = async (title: string, description: string, imageUri?: string) => {
     const userID = await AsyncStorage.getItem('userID');
