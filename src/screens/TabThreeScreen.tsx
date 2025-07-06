@@ -1,10 +1,11 @@
-import React, {useState, useEffect} from 'react';
-import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, ActivityIndicator, TouchableOpacity, Alert } from 'react-native'; // Import Alert for simple feedback
+import React, { useState, useEffect } from 'react';
+import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps'; // Import Region type
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { getPostsInViewport, PostResponse, Viewport } from '../../api/post'; // Adjust the import path as needed
 
 const { width } = Dimensions.get('window');
 const ITEM_MARGIN = 8;
@@ -13,6 +14,9 @@ const ITEM_SIZE = (width - 16 * 2 - ITEM_MARGIN * 2) / 3;
 export function TabThreeScreen() {
   const [currentRegion, setCurrentRegion] = useState<null | Region>(null);
   const [initialMapRegion, setInitialMapRegion] = useState<null | Region>(null);
+  const [posts, setPosts] = useState<PostResponse[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -22,35 +26,73 @@ export function TabThreeScreen() {
         return;
       }
 
-      const { coords } = await Location.getCurrentPositionAsync({});
-      const regionData = {
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      };
-      setInitialMapRegion(regionData);
-      setCurrentRegion(regionData);
+      try {
+        const { coords } = await Location.getCurrentPositionAsync({});
+        const regionData = {
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+        setInitialMapRegion(regionData);
+        setCurrentRegion(regionData);
+      } catch (err) {
+        console.error("Error getting current position:", err);
+        Alert.alert('Location Error', 'Could not fetch your current location.');
+        // Set a default region if location cannot be fetched
+        setInitialMapRegion({
+          latitude: 36.3504, // Default to Daejeon latitude
+          longitude: 127.3845, // Default to Daejeon longitude
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        });
+        setCurrentRegion({
+          latitude: 36.3504,
+          longitude: 127.3845,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        });
+      }
     })();
   }, []);
 
-  const handleLoadPosts = () => {
-    if (currentRegion) {
-      console.log("Loading posts for the current region:", currentRegion);
-      Alert.alert(
-        'Region Coordinates',
-        `Latitude: ${currentRegion.latitude}\nLongitude: ${currentRegion.longitude}\nLatitude Delta: ${currentRegion.latitudeDelta}\nLongitude Delta: ${currentRegion.longitudeDelta}`
-      );
-    } else {
+  const handleLoadPosts = async () => {
+    if (!currentRegion) {
       console.log("Map region not available yet.");
       Alert.alert('Error', 'Map region not available yet. Please wait for the map to load.');
+      return;
+    }
+
+    setLoadingPosts(true);
+    setError(null);
+    setPosts([]); // Clear previous posts
+
+    try {
+      const viewport: Viewport = {
+        centerLat: currentRegion.latitude,
+        centerLon: currentRegion.longitude,
+        deltaLat: currentRegion.latitudeDelta,
+        deltaLon: currentRegion.longitudeDelta,
+        deltaRatioLat: 0.4, // Optional: Adjust if you want to scale the delta
+        deltaRatioLon: 0.4, // Optional: Adjust if you want to scale the delta
+      };
+      console.log("Fetching posts with viewport:", viewport);
+      const fetchedPosts = await getPostsInViewport(viewport);
+      setPosts(fetchedPosts);
+      console.log("Fetched posts:", fetchedPosts);
+    } catch (err) {
+      console.error("Error fetching posts:", err);
+      setError('Failed to load posts. Please try again.');
+    } finally {
+      setLoadingPosts(false);
     }
   };
 
   if (!initialMapRegion) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={{ marginTop: 10 }}>Loading map...</Text>
       </View>
     );
   }
@@ -66,16 +108,43 @@ export function TabThreeScreen() {
         }}
         showsUserLocation
         showsMyLocationButton
-      />
+      >
+        {posts.map((post) => (
+          <Marker
+            key={post.id}
+            coordinate={{ latitude: post.lat, longitude: post.lon }}
+            title={post.title}
+            description={post.content}
+          />
+        ))}
+      </MapView>
 
       <TouchableOpacity
         style={styles.loadPostsButton}
         onPress={handleLoadPosts}
+        disabled={loadingPosts}
       >
-        <Text style={styles.loadPostsButtonText}>
-          <Ionicons name="location-outline" size={16} color="#007AFF" /> 이 지역의 글 불러오기
-        </Text>
+        {loadingPosts ? (
+          <ActivityIndicator size="small" color="#007AFF" />
+        ) : (
+          <Text style={styles.loadPostsButtonText}>
+            <Ionicons name="location-outline" size={16} color="#007AFF" /> 이 지역의 글 불러오기
+          </Text>
+        )}
       </TouchableOpacity>
+
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+       {posts.length > 0 && !loadingPosts && (
+        <View style={styles.postsCountContainer}>
+          <Text style={styles.postsCountText}>
+            <Ionicons name="documents-outline" size={14} color="#555" /> {posts.length}개의 글이 로드되었습니다.
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -180,6 +249,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#007AFF',
+    marginLeft: 5,
+  },
+  errorContainer: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+  },
+  errorText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  postsCountContainer: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  postsCountText: {
+    color: '#555',
+    fontSize: 14,
     marginLeft: 5,
   },
 });
