@@ -10,62 +10,9 @@ const { width } = Dimensions.get('window');
 const ITEM_MARGIN = 8;
 const ITEM_SIZE = (width - 16 * 2 - ITEM_MARGIN * 2) / 3;
 
-const DATA = [
-  {
-    id: '1',
-    image: require('../../assets/adaptive-icon.png'),
-    title: '맛집 A',
-    description: '맛집 A입니다'
-  },
-  {
-    id: '2',
-    image: require('../../assets/favicon.png'),
-    title: '카페 B',
-    description: '카페 B입니다'
-  },
-  {
-    id: '3',
-    image: require('../../assets/icon.png'),
-    title: '풍경 C',
-    description: '풍경 C입니다'
-  },
-  {
-    id: '4',
-    image: require('../../assets/splash-icon.png'),
-    title: '전시 D',
-    description: '전시 D입니다'
-  },
-  {
-    id: '5',
-    image: require('../../assets/splash-icon.png'),
-    title: '전시 D',
-    description: '전시 D입니다'
-  },
-  {
-    id: '6',
-    image: require('../../assets/splash-icon.png'),
-    title: '전시 D',
-    description: '전시 D입니다'
-  },
-  {
-    id: '7',
-    image: require('../../assets/splash-icon.png'),
-    title: '전시 D',
-    description: '전시 D입니다'
-  },
-  {
-    id: '8',
-    image: require('../../assets/splash-icon.png'),
-    title: '전시 D',
-    description: '전시 D입니다'
-  },
-];
-
 export function TabThreeScreen() {
-  // `currentRegion` will store the region currently visible on the map
   const [currentRegion, setCurrentRegion] = useState<null | Region>(null);
   const [initialMapRegion, setInitialMapRegion] = useState<null | Region>(null);
-
 
   useEffect(() => {
     (async () => {
@@ -82,38 +29,14 @@ export function TabThreeScreen() {
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       };
-      setInitialMapRegion(regionData); // Set initial region for MapView
-      setCurrentRegion(regionData); // Also set currentRegion to initial location
+      setInitialMapRegion(regionData);
+      setCurrentRegion(regionData);
     })();
   }, []);
 
   const handleLoadPosts = () => {
     if (currentRegion) {
       console.log("Loading posts for the current region:", currentRegion);
-      // Here you would send `currentRegion` to your server.
-      // For example, you might make an API call:
-      /*
-      fetch('YOUR_API_ENDPOINT/posts-by-region', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          latitude: currentRegion.latitude,
-          longitude: currentRegion.longitude,
-          latitudeDelta: currentRegion.latitudeDelta,
-          longitudeDelta: currentRegion.longitudeDelta,
-        }),
-      })
-      .then(response => response.json())
-      .then(data => {
-        console.log('Posts loaded:', data);
-        // Update your UI with the loaded posts (e.g., display markers)
-      })
-      .catch(error => {
-        console.error('Error loading posts:', error);
-      });
-      */
       Alert.alert(
         'Region Coordinates',
         `Latitude: ${currentRegion.latitude}\nLongitude: ${currentRegion.longitude}\nLatitude Delta: ${currentRegion.latitudeDelta}\nLongitude Delta: ${currentRegion.longitudeDelta}`
@@ -137,13 +60,13 @@ export function TabThreeScreen() {
       <MapView
         style={styles.map}
         provider={PROVIDER_GOOGLE}
-        initialRegion={initialMapRegion} // Use initialMapRegion here
-        onRegionChangeComplete={(region) => setCurrentRegion(region)} // Update currentRegion on map interaction
+        initialRegion={initialMapRegion}
+        onRegionChangeComplete={(region) => {
+          setCurrentRegion(region); // Update currentRegion on map interaction
+        }}
         showsUserLocation
         showsMyLocationButton
-      >
-        {/* You can add markers here based on posts fetched from the server */}
-      </MapView>
+      />
 
       <TouchableOpacity
         style={styles.loadPostsButton}
