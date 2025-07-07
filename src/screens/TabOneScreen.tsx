@@ -1,8 +1,8 @@
 // screens/TabOneScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { PostPayload, createPost, getPostById, getNearbyPosts } from '../../api/post';
-import { UserPayload, OnboardResponse, createUser } from '../../api/user';
+import { Post, createPost, getPostById, getNearbyPosts } from '../../api/post';
+import { User, OnboardResponse, createUser } from '../../api/user';
 import { BASE_URL } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
@@ -83,24 +83,25 @@ export function TabOneScreen() {
     const userID = await AsyncStorage.getItem('userID');
     const userLat = await AsyncStorage.getItem('userLat');
     const userLon = await AsyncStorage.getItem('userLon');
-    const userAdminDong = await AsyncStorage.getItem('userAdminDong');
+    // const userAdminDong = await AsyncStorage.getItem('userAdminDong');
 
     if (!userID)        throw new Error('로그인이 필요합니다.');
     if (!userLat || !userLon) throw new Error('위치 정보가 없습니다.');
-    if (!userAdminDong) throw new Error('행정동 정보가 없습니다.');
+    // if (!userAdminDong) throw new Error('행정동 정보가 없습니다.');
 
     try {
-      const newPost: PostPayload = {
+
+      const postRes = await createPost({
+        id: '',
         userId: userID,
         title: title,
         content : description,
         lat: Number(userLat),
         lon: Number(userLon),
-        imageUri,
-        adminDong: userAdminDong,
-      };
-
-      const postRes = await createPost(newPost);
+        image_url: imageUri,
+        adminDong: '',
+        upperAdminDong: ''
+      });
       console.log("Post created successfully:", postRes);
 
       const newItem = {
