@@ -6,7 +6,7 @@ import { PostDetailScreen } from '../components/PostDetailScreen';  // 상세 �
 // TabThree 스택 내 화면들의 파라미터 타입을 정의합니다.
 export type TabThreeStackParamList = {
   TabThreeInitial: undefined;              // 지도 탭의 시작 화면
-  PostDetail: { postId: string };          // PostDetail 화면은 postId를 파라미터로 받습니다.
+  PostDetail: { postId: number };          // PostDetail 화면은 postId를 파라미터로 받습니다.
 };
 
 const TabThreeStack = createStackNavigator<TabThreeStackParamList>();

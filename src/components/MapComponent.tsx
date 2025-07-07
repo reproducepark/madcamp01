@@ -3,14 +3,14 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps'; // Region 타입을 여기서 임포트
 import mapStyle from './mapStyles.js'; // mapStyles.js 경로 조정
-import { PostResponse } from '../../api/post'; // PostResponse 타입 임포트
+import { NearByViewportResponse } from '../../api/post'; // PostResponse 타입 임포트
 
 interface MapComponentProps {
   initialMapRegion: Region | null;
   currentRegion: Region | null;
   onRegionChangeComplete: (region: Region) => void;
-  posts: PostResponse[];
-  onMarkerPress: (post: PostResponse) => void;
+  posts: NearByViewportResponse[];
+  onMarkerPress: (post: NearByViewportResponse) => void;
 }
 
 const MapComponent: React.FC<MapComponentProps> = ({

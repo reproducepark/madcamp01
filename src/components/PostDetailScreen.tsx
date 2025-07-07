@@ -1,7 +1,7 @@
 // components/PostDetailScreen.tsx
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, Dimensions } from 'react-native';
-import { getPostById, PostResponse } from '../../api/post'; // Adjust path if needed
+import { getPostById, PostByIdResponse } from '../../api/post'; // Adjust path if needed
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
@@ -21,7 +21,7 @@ const { width } = Dimensions.get('window');
 
 export function PostDetailScreen({ route }: PostDetailScreenProps) {
   const { postId } = route.params;
-  const [post, setPost] = useState<PostResponse | null>(null);
+  const [post, setPost] = useState<PostByIdResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 

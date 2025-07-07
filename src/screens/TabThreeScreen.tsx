@@ -5,14 +5,14 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { getPostsInViewport, PostResponse, Viewport } from '../../api/post'; // Adjust the import path as needed
+import { getPostsInViewport, NearByViewportResponse, Viewport } from '../../api/post'; // Adjust the import path as needed
 import MapComponent from '../components/MapComponent'; // 새로 생성할 컴포넌트
 import BottomSheetContent from '../components/BottomSheetContent'; // 새로 생성할 컴포넌트
 
 export function TabThreeScreen() {
   const [currentRegion, setCurrentRegion] = useState<null | Region>(null);
   const [initialMapRegion, setInitialMapRegion] = useState<null | Region>(null);
-  const [posts, setPosts] = useState<PostResponse[]>([]);
+  const [posts, setPosts] = useState<NearByViewportResponse[]>([]);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,7 +89,7 @@ export function TabThreeScreen() {
     }
   };
 
-  const handleMarkerPress = useCallback((post: PostResponse) => {
+  const handleMarkerPress = useCallback((post: NearByViewportResponse) => {
     console.log("마커 클릭:", post.title);
     if (bottomSheetRef.current) {
       bottomSheetRef.current?.snapToIndex(1); // 60%

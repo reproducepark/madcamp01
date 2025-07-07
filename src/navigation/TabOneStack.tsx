@@ -7,7 +7,7 @@ import { PostDetailScreen } from '../components/PostDetailScreen'; // Make sure 
 // This defines the types for the screens within the '리스트' tab's stack.
 export type TabOneStackParamList = {
   TabOneInitial: undefined; // This is the starting screen for the '리스트' stack
-  PostDetail: { postId: string }; // The PostDetail screen, which expects a postId
+  PostDetail: { postId: number }; // The PostDetail screen, which expects a postId
 };
 
 const TabOneStack = createStackNavigator<TabOneStackParamList>();

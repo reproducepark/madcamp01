@@ -2,27 +2,24 @@ import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { useNavigation, NavigationProp } from '@react-navigation/native'; // <--- NEW: 네비게이션 훅 임포트
-import { PostResponse } from '../../api/post';
+import { NearByViewportResponse } from '../../api/post';
 import { TabThreeStackParamList } from '../navigation/TabThreeStack'; // <--- NEW: TabThree 스택 파라미터 타입 임포트
 
 interface BottomSheetContentProps {
-  posts: PostResponse[];
+  posts: NearByViewportResponse[];
   loadingPosts: boolean;
   bottomSheetRef: React.RefObject<BottomSheet | null>;
 }
 
 const BottomSheetContent: React.FC<BottomSheetContentProps> = ({ posts, loadingPosts }) => {
-  // <--- CHANGED: bottomSheetRef는 이제 의존성 배열에서 제거해도 됩니다.
-  // <--- NEW: useNavigation 훅을 사용하여 네비게이션 객체를 가져옵니다.
   const navigation = useNavigation<NavigationProp<TabThreeStackParamList>>();
 
-  const renderPostItem = useCallback(({ item }: { item: PostResponse }) => (
+  const renderPostItem = useCallback(({ item }: { item: NearByViewportResponse }) => (
     <TouchableOpacity
       style={styles.postItem}
       onPress={() => {
         console.log("게시글 아이템 클릭, 상세 화면으로 이동:", item.title);
-        // <--- CHANGED: PostDetail 화면으로 이동하는 로직으로 변경
-        navigation.navigate('PostDetail', { postId: item.id.toString() });
+        navigation.navigate('PostDetail', { postId: item.id });
       }}
     >
       <View style={[styles.itemContent, !item.image_url && styles.itemContentFullWidth]}>
@@ -34,9 +31,8 @@ const BottomSheetContent: React.FC<BottomSheetContentProps> = ({ posts, loadingP
         <Image source={{ uri: item.image_url }} style={styles.itemImage} />
       )}
     </TouchableOpacity>
-  ), [navigation]); // <--- CHANGED: 의존성 배열에 navigation 추가
+  ), [navigation]);
 
-  // ... (나머지 코드는 동일: renderEmptyListComponent, renderListHeader, return 문, styles) ...
   const renderEmptyListComponent = useCallback(() => (
     <View style={styles.noPostsContainer}>
       {loadingPosts ? (

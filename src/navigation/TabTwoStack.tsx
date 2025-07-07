@@ -7,7 +7,7 @@ import { PostDetailScreen } from '../components/PostDetailScreen'; // PostDetail
 // 이 스택 내비게이터의 파라미터 목록을 정의합니다.
 export type TabTwoStackParamList = {
   TabTwoInitial: undefined; // TabTwoScreen을 위한 초기 경로 이름
-  PostDetail: { postId: string }; // PostDetailScreen을 위한 경로 및 파라미터
+  PostDetail: { postId: number }; // PostDetailScreen을 위한 경로 및 파라미터
 };
 
 const TabTwoStack = createStackNavigator<TabTwoStackParamList>();
