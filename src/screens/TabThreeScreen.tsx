@@ -1,6 +1,6 @@
 // screens/TabThreeScreen.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Text, View, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { Text, View, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, Alert, Image } from 'react-native'; // Image 컴포넌트 추가
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -111,12 +111,14 @@ export function TabThreeScreen() {
         // TODO: 필요한 경우 해당 게시글의 상세 정보를 표시하는 로직 추가
       }}
     >
-      <View style={styles.itemImagePlaceholder} />
-      <View style={styles.itemContent}>
+      <View style={[styles.itemContent, !item.image_url && styles.itemContentFullWidth]}>
         <Text style={styles.itemTitle}>{item.title}</Text>
         <Text style={styles.itemDescription} numberOfLines={1}>{item.content}</Text>
         <Text style={styles.itemLocation}>{item.admin_dong}</Text>
       </View>
+      {item.image_url && ( // image_url이 있을 때만 Image 컴포넌트 렌더링
+        <Image source={{ uri: item.image_url }} style={styles.itemImage} />
+      )}
     </TouchableOpacity>
   ), []);
 
@@ -299,7 +301,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   postItem: {
-    flexDirection: 'row',
+    flexDirection: 'row', // 이미지를 텍스트 오른쪽에 배치
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -307,15 +309,18 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e0e0e0',
     backgroundColor: '#fff',
   },
-  itemImagePlaceholder: {
+  itemImage: { // 이미지 스타일
     width: 70,
     height: 70,
     borderRadius: 8,
-    backgroundColor: '#eee',
-    marginRight: 12,
+    backgroundColor: '#eee', // 이미지가 없을 때 배경색
+    marginLeft: 12, // 이미지를 오른쪽으로 옮겼으므로 텍스트와의 간격을 위해 왼쪽 마진 추가
   },
   itemContent: {
-    flex: 1,
+    flex: 1, // 텍스트 콘텐츠가 남은 공간을 차지하도록
+  },
+  itemContentFullWidth: { // 이미지가 없을 때 텍스트가 전체 너비를 차지하도록
+    marginRight: 0,
   },
   itemTitle: {
     fontSize: 16,
