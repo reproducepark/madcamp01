@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { SafeAreaView, StyleSheet, FlatList, Image, Dimensions, TouchableOpacity, Text, View } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react'; // useCallback을 import 합니다.
+import { SafeAreaView, StyleSheet, FlatList, Image, Dimensions, TouchableOpacity, Text, View, RefreshControl } from 'react-native'; // RefreshControl을 import 합니다.
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NearByPostsUpperResponse, getNearbyPostsUpper } from '../../api/post';
@@ -16,52 +16,58 @@ const ITEM_SIZE = (width - (LIST_PADDING_HORIZONTAL * 2) - (ITEM_SPACING * (NUM_
 export function TabTwoScreen() {
   const navigation = useNavigation<NavigationProp<TabTwoStackParamList>>();
   const [listData, setListData] = useState<NearByPostsUpperResponse[]>([]);
+  const [refreshing, setRefreshing] = useState(false); // 새로고침 상태를 관리할 state 추가
 
   const handleItemPress = (itemId: number) => {
     console.log("갤러리 아이템 클릭됨:", itemId);
     navigation.navigate('PostDetail', { postId: itemId });
   };
 
-  const fetchPosts = async () => {
-      try {
-        const rawLat = await AsyncStorage.getItem('userLat');
-        const rawLon = await AsyncStorage.getItem('userLon');
-        if (!rawLat || !rawLon) {
-          console.error('위치 정보 없음', '먼저 위치를 받아 와야 합니다.');
-          return;
-        }
-        const lat = Number(rawLat);
-        const lon = Number(rawLon);
-
-        const data = await getNearbyPostsUpper(lat, lon);
-        // 이미지가 있는 게시글만 필터링하여 상태에 저장
-        setListData(data.nearbyPosts.filter(post => post.image_url));
-
-      } catch (e: any) {
-        console.error('근처 글 조회 실패', e);
+  // fetchPosts 함수를 useCallback으로 래핑하여 불필요한 재생성을 방지합니다.
+  const fetchPosts = useCallback(async () => {
+    try {
+      setRefreshing(true); // 데이터를 가져오기 시작할 때 새로고침 상태를 true로 설정
+      const rawLat = await AsyncStorage.getItem('userLat');
+      const rawLon = await AsyncStorage.getItem('userLon');
+      if (!rawLat || !rawLon) {
+        console.error('위치 정보 없음', '먼저 위치를 받아 와야 합니다.');
+        setRefreshing(false); // 오류 발생 시 새로고침 상태 해제
+        return;
       }
+      const lat = Number(rawLat);
+      const lon = Number(rawLon);
+
+      const data = await getNearbyPostsUpper(lat, lon);
+      // 이미지가 있는 게시글만 필터링하여 상태에 저장
+      setListData(data.nearbyPosts.filter(post => post.image_url));
+
+    } catch (e: any) {
+      console.error('근처 글 조회 실패', e);
+    } finally {
+      setRefreshing(false); // 데이터 로딩이 완료되면 새로고침 상태를 false로 설정
     }
+  }, []); // 의존성 배열이 비어 있으므로 컴포넌트 마운트 시 한 번만 생성됩니다.
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [fetchPosts]); // fetchPosts가 변경될 때마다 실행되도록 의존성 배열에 추가
 
   const renderItem = React.useCallback(({ item, index }: { item: NearByPostsUpperResponse, index: number }) => {
     if (!item.image_url) {
       return null;
     }
-    
+
     const marginRight = (index + 1) % NUM_COLUMNS === 0 ? 0 : ITEM_SPACING;
 
     return (
       <TouchableOpacity
         onPress={() => handleItemPress(item.id)}
-        style={[styles.itemContainer, { marginRight: marginRight, marginBottom: ITEM_SPACING }]}
+        style={[{ marginRight: marginRight, marginBottom: ITEM_SPACING }]}
       >
         <Image source={{ uri: item.image_url }} style={styles.image} />
       </TouchableOpacity>
     );
-  }, [handleItemPress]); // handleItemPress가 변경될 수 있으므로 의존성 배열에 추가
+  }, [handleItemPress]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -71,6 +77,13 @@ export function TabTwoScreen() {
         numColumns={NUM_COLUMNS}
         contentContainerStyle={styles.list}
         renderItem={renderItem}
+        // 새로고침 기능 추가
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing} // 현재 새로고침 중인지 여부
+            onRefresh={fetchPosts} // 당겨서 새로고침 시 호출될 함수
+          />
+        }
       />
     </SafeAreaView>
   );
@@ -83,15 +96,6 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: LIST_PADDING_HORIZONTAL,
-  },
-  // row 스타일은 더 이상 필요 없습니다.
-  // row: {
-  //   justifyContent: 'space-between',
-  //   marginBottom: ITEM_SPACING,
-  // },
-  itemContainer: {
-    // 아이템 자체의 크기는 image 스타일에서 정의되므로 여기서는 추가 마진만 정의합니다.
-    // marginRight와 marginBottom은 renderItem에서 동적으로 추가됩니다.
   },
   image: {
     width: ITEM_SIZE,
