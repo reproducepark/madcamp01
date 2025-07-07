@@ -1,13 +1,13 @@
 // screens/TabThreeScreen.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Text, View, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, Alert, Image } from 'react-native'; // Image 컴포넌트 추가
+import { View, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, Alert, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { getPostsInViewport, PostResponse, Viewport } from '../../api/post'; // Adjust the import path as needed
-import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import mapStyle from './mapStyles.js';
+import { getPostsInViewport, PostResponse, Viewport } from '../../api/post'; // Adjust the import path as needed
+import MapComponent from '../components/MapComponent'; // 새로 생성할 컴포넌트
+import BottomSheetContent from '../components/BottomSheetContent'; // 새로 생성할 컴포넌트
 
 export function TabThreeScreen() {
   const [currentRegion, setCurrentRegion] = useState<null | Region>(null);
@@ -19,7 +19,6 @@ export function TabThreeScreen() {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
-  // snapPoints를 고정된 값으로 설정
   const snapPoints = ['30%', '60%', '100%'];
 
   // 초기 위치 설정 로직
@@ -78,8 +77,8 @@ export function TabThreeScreen() {
           bottomSheetRef.current.snapToIndex(1); // 게시글이 있으면 60%로 열기
         } else {
           bottomSheetRef.current.snapToIndex(2); // 게시글이 없으면 100%로 열기 (안내문 표시)
+        }
       }
-    }
 
     } catch (err) {
       console.error("게시글 가져오는 중 오류 발생:", err);
@@ -92,74 +91,25 @@ export function TabThreeScreen() {
 
   const handleMarkerPress = useCallback((post: PostResponse) => {
     console.log("마커 클릭:", post.title);
-    // 마커 클릭 시 BottomSheet 열기 (60% 스냅 포인트)
     if (bottomSheetRef.current) {
       bottomSheetRef.current?.snapToIndex(1); // 60%
     }
     // TODO: FlatList에서 해당 아이템으로 스크롤하는 로직 추가
   }, []);
 
-  const renderPostItem = useCallback(({ item }: { item: PostResponse }) => (
-    <TouchableOpacity
-      style={styles.postItem}
-      onPress={() => {
-        console.log("게시글 아이템 클릭:", item.title);
-        // 게시글 아이템 클릭 시 100%로 확장
-        if (bottomSheetRef.current) {
-          bottomSheetRef.current?.snapToIndex(2); // 100%
-        }
-        // TODO: 필요한 경우 해당 게시글의 상세 정보를 표시하는 로직 추가
-      }}
-    >
-      <View style={[styles.itemContent, !item.image_url && styles.itemContentFullWidth]}>
-        <Text style={styles.itemTitle}>{item.title}</Text>
-        <Text style={styles.itemDescription} numberOfLines={1}>{item.content}</Text>
-        <Text style={styles.itemLocation}>{item.admin_dong}</Text>
-      </View>
-      {item.image_url && ( // image_url이 있을 때만 Image 컴포넌트 렌더링
-        <Image source={{ uri: item.image_url }} style={styles.itemImage} />
-      )}
-    </TouchableOpacity>
-  ), []);
-
   const toggleBottomSheet = useCallback(() => {
     if (isBottomSheetOpen) {
       bottomSheetRef.current?.close();
     } else {
-      // 게시글 유무에 따라 적절한 스냅포인트로 열기
       if (bottomSheetRef.current) {
         if (posts.length > 0) {
-          bottomSheetRef.current?.snapToIndex(1); // 게시글이 있으면 60%로 열기
+          bottomSheetRef.current?.snapToIndex(1);
         } else {
-          bottomSheetRef.current?.snapToIndex(2); // 게시글이 없으면 100%로 열기
+          bottomSheetRef.current?.snapToIndex(2);
         }
       }
     }
-  }, [isBottomSheetOpen, posts.length]); // posts.length를 의존성에 추가
-
-  // "게시글 없음" UI를 렌더링하는 컴포넌트
-  const renderEmptyListComponent = useCallback(() => (
-    <View style={styles.noPostsContainer}>
-      {loadingPosts ? (
-        <ActivityIndicator size="large" color="#007AFF" />
-      ) : (
-        <>
-          <Text style={styles.noPostsText}>이 지역에는 아직 글이 없어요.</Text>
-          <Text style={styles.noPostsSubText}>지도를 이동하거나 '이 지역 검색하기'를 눌러보세요.</Text>
-        </>
-      )}
-    </View>
-  ), [loadingPosts]);
-
-  // "게시글 리스트" 헤더 컴포넌트
-  const renderListHeader = useCallback(() => (
-    posts.length > 0 ? (
-      <View style={styles.listHeaderContainer}>
-        <Text style={styles.listHeaderText}>게시글 리스트 ({posts.length})</Text>
-      </View>
-    ) : null
-  ), [posts.length]);
-
+  }, [isBottomSheetOpen, posts.length]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -170,31 +120,15 @@ export function TabThreeScreen() {
         </View>
       ) : (
         <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            provider={PROVIDER_GOOGLE}
-            initialRegion={initialMapRegion}
+          <MapComponent
+            initialMapRegion={initialMapRegion}
+            currentRegion={currentRegion}
             onRegionChangeComplete={setCurrentRegion}
-            showsUserLocation
-            showsMyLocationButton
-            customMapStyle={mapStyle}
-          >
-            {posts.map((post) => (
-              <Marker
-                key={post.id}
-                coordinate={{ latitude: post.lat, longitude: post.lon }}
-                title={post.title}
-                description={post.content}
-                onPress={() => handleMarkerPress(post)}
-              >
-                <View style={styles.customMarker}>
-                  <View style={styles.innerMarker} />
-                </View>
-              </Marker>
-            ))}
-          </MapView>
+            posts={posts}
+            onMarkerPress={handleMarkerPress}
+          />
 
-          {!isBottomSheetOpen && ( // 바텀시트가 닫혀있을 때만 버튼 표시
+          {!isBottomSheetOpen && (
             <TouchableOpacity
               style={styles.loadPostsButton}
               onPress={handleLoadPosts}
@@ -225,24 +159,17 @@ export function TabThreeScreen() {
             </Text>
           </TouchableOpacity>
 
-
           <BottomSheet
             ref={bottomSheetRef}
-            index={-1} // 초기 상태: -1 = 닫힘
-            snapPoints={snapPoints} // 고정된 snapPoints 사용
+            index={-1}
+            snapPoints={snapPoints}
             enablePanDownToClose={true}
             onChange={(index) => setIsBottomSheetOpen(index > -1)}
           >
-            <BottomSheetFlatList
-              data={posts}
-              renderItem={renderPostItem}
-              keyExtractor={(item) => item.id.toString()}
-              style={styles.bottomSheetFlatList}
-              contentContainerStyle={styles.postsListContent}
-              ListHeaderComponent={renderListHeader}
-              ListEmptyComponent={renderEmptyListComponent}
-              scrollEnabled={posts.length > 0} // 게시글이 없을 때는 스크롤 비활성화
-              showsVerticalScrollIndicator={false}
+            <BottomSheetContent
+              posts={posts}
+              loadingPosts={loadingPosts}
+              bottomSheetRef={bottomSheetRef} // BottomSheetContent에서 직접 제어할 수 있도록 ref 전달
             />
           </BottomSheet>
         </View>
@@ -253,9 +180,6 @@ export function TabThreeScreen() {
 
 const styles = StyleSheet.create({
   mapContainer: {
-    flex: 1,
-  },
-  map: {
     flex: 1,
   },
   loadPostsButton: {
@@ -281,78 +205,6 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     marginLeft: 5,
   },
-  bottomSheetFlatList: {
-    backgroundColor: '#f9f9f9',
-  },
-  postsListContent: {
-    paddingBottom: 20,
-    flexGrow: 1,
-  },
-  listHeaderContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e0e0e0',
-    backgroundColor: '#f9f9f9',
-  },
-  listHeaderText: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  postItem: {
-    flexDirection: 'row', // 이미지를 텍스트 오른쪽에 배치
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e0e0e0',
-    backgroundColor: '#fff',
-  },
-  itemImage: { // 이미지 스타일
-    width: 70,
-    height: 70,
-    borderRadius: 8,
-    backgroundColor: '#eee', // 이미지가 없을 때 배경색
-    marginLeft: 12, // 이미지를 오른쪽으로 옮겼으므로 텍스트와의 간격을 위해 왼쪽 마진 추가
-  },
-  itemContent: {
-    flex: 1, // 텍스트 콘텐츠가 남은 공간을 차지하도록
-  },
-  itemContentFullWidth: { // 이미지가 없을 때 텍스트가 전체 너비를 차지하도록
-    marginRight: 0,
-  },
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  itemDescription: {
-    fontSize: 13,
-    color: '#555',
-    marginBottom: 4,
-  },
-  itemLocation: {
-    fontSize: 12,
-    color: '#999',
-  },
-  noPostsContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  noPostsText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#555',
-    marginBottom: 5,
-  },
-  noPostsSubText: {
-    fontSize: 14,
-    color: '#888',
-    textAlign: 'center',
-  },
   toggleListButton: {
     position: 'absolute',
     bottom: 20,
@@ -368,6 +220,7 @@ const styles = StyleSheet.create({
     elevation: 5,
     zIndex: 1,
   },
+  // 이곳에 toggleListButtonText 스타일을 추가합니다.
   toggleListButtonText: {
     fontSize: 17,
     fontWeight: 'bold',
@@ -393,25 +246,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  customMarker: {
-    height: 28,
-    width: 28,
-    borderRadius: 14,
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#eee',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
-    elevation: 2,
-  },
-  innerMarker: {
-    height: 16,
-    width: 16,
-    borderRadius: 8,
-    backgroundColor: 'orange',
-  },
 });
+
+// MapView에서 Region 타입을 사용하므로 여기에 정의
+interface Region {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+}
