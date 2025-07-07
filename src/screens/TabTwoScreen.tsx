@@ -22,8 +22,7 @@ export function TabTwoScreen() {
     navigation.navigate('PostDetail', { postId: itemId });
   };
 
-  useEffect(() => {
-    (async () => {
+  const fetchPosts = async () => {
       try {
         const rawLat = await AsyncStorage.getItem('userLat');
         const rawLon = await AsyncStorage.getItem('userLon');
@@ -36,12 +35,15 @@ export function TabTwoScreen() {
 
         const data = await getNearbyPostsUpper(lat, lon);
         // 이미지가 있는 게시글만 필터링하여 상태에 저장
-        setListData(data.nearbyPosts.filter(item => item.image_url));
+        setListData(data.nearbyPosts.filter(post => post.image_url));
 
       } catch (e: any) {
         console.error('근처 글 조회 실패', e);
       }
-    })();
+    }
+
+  useEffect(() => {
+    fetchPosts();
   }, []);
 
   const renderItem = React.useCallback(({ item, index }: { item: NearByPostsUpperResponse, index: number }) => {
@@ -68,7 +70,6 @@ export function TabTwoScreen() {
         keyExtractor={(item) => String(item.id)}
         numColumns={NUM_COLUMNS}
         contentContainerStyle={styles.list}
-        // columnWrapperStyle={styles.row} // 이 부분을 제거하거나 변경합니다.
         renderItem={renderItem}
       />
     </SafeAreaView>
