@@ -1,3 +1,4 @@
+// screens/TabThreeScreen.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Text, View, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -114,7 +115,7 @@ export function TabThreeScreen() {
       <View style={styles.itemContent}>
         <Text style={styles.itemTitle}>{item.title}</Text>
         <Text style={styles.itemDescription} numberOfLines={1}>{item.content}</Text>
-        <Text style={styles.itemLocation}>만년동</Text>
+        <Text style={styles.itemLocation}>{item.admin_dong}</Text>
       </View>
     </TouchableOpacity>
   ), []);
