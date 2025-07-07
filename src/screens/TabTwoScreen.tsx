@@ -1,85 +1,114 @@
-// screens/TabTwoScreen.tsx
-import React, { useState, useEffect } from 'react';
-import { SafeAreaView, StyleSheet, FlatList, Image, Dimensions, TouchableOpacity } from 'react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native'; // useNavigation, NavigationProp 임포트
-import { NearByPostsUpperResponse, NearByPostsUpperResponses, getNearbyPostsUpper } from '../../api/post';
+import React, { useState, useEffect, useCallback } from 'react'; // useCallback을 import 합니다.
+import { SafeAreaView, StyleSheet, FlatList, Image, Dimensions, TouchableOpacity, Text, View, RefreshControl } from 'react-native'; // RefreshControl을 import 합니다.
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NearByPostsUpperResponse, getNearbyPostsUpper } from '../../api/post';
 
-import { TabTwoStackParamList } from '../navigation/TabTwoStack'; // TabTwoStackParamList 임포트
+import { TabTwoStackParamList } from '../navigation/TabTwoStack';
 
 const { width } = Dimensions.get('window');
-const ITEM_MARGIN = 8;
-const ITEM_SIZE = (width - 16 * 2 - ITEM_MARGIN * 2) / 3;
+const LIST_PADDING_HORIZONTAL = 16;
+const ITEM_SPACING = 8;
+const NUM_COLUMNS = 3;
 
-// 탭 2에 해당하는 화면 컴포넌트
+const ITEM_SIZE = (width - (LIST_PADDING_HORIZONTAL * 2) - (ITEM_SPACING * (NUM_COLUMNS - 1))) / NUM_COLUMNS;
+
 export function TabTwoScreen() {
-  // useNavigation 훅을 사용하여 TabTwoStackParamList 타입을 지정합니다.
   const navigation = useNavigation<NavigationProp<TabTwoStackParamList>>();
   const [listData, setListData] = useState<NearByPostsUpperResponse[]>([]);
+  const [refreshing, setRefreshing] = useState(false); // 새로고침 상태를 관리할 state 추가
 
   const handleItemPress = (itemId: number) => {
     console.log("갤러리 아이템 클릭됨:", itemId);
-    // PostDetail 화면으로 이동하면서 postId를 파라미터로 전달합니다.
     navigation.navigate('PostDetail', { postId: itemId });
   };
 
-  useEffect(() => {
-    (async () => {
-      try {
-        // 1) 로컬에 저장된 좌표 꺼내기
-        const rawLat = await AsyncStorage.getItem('userLat');
-        const rawLon = await AsyncStorage.getItem('userLon');
-        if (!rawLat || !rawLon) {
-          console.error('위치 정보 없음', '먼저 위치를 받아 와야 합니다.');
-          return;
-        }
-        const lat = Number(rawLat);
-        const lon = Number(rawLon);
-
-        // 2) 근처 글만 조회
-        const data = await getNearbyPostsUpper(lat, lon);
-        
-        setListData(data.nearbyPosts);
-
-      } catch (e: any) {
-        console.error('근처 글 조회 실패', e);
+  // fetchPosts 함수를 useCallback으로 래핑하여 불필요한 재생성을 방지합니다.
+  const fetchPosts = useCallback(async () => {
+    try {
+      setRefreshing(true); // 데이터를 가져오기 시작할 때 새로고침 상태를 true로 설정
+      const rawLat = await AsyncStorage.getItem('userLat');
+      const rawLon = await AsyncStorage.getItem('userLon');
+      if (!rawLat || !rawLon) {
+        console.error('위치 정보 없음', '먼저 위치를 받아 와야 합니다.');
+        setRefreshing(false); // 오류 발생 시 새로고침 상태 해제
+        return;
       }
-    })();
-  }, []);
+      const lat = Number(rawLat);
+      const lon = Number(rawLon);
+
+      const data = await getNearbyPostsUpper(lat, lon);
+      // 이미지가 있는 게시글만 필터링하여 상태에 저장
+      setListData(data.nearbyPosts.filter(post => post.image_url));
+
+    } catch (e: any) {
+      console.error('근처 글 조회 실패', e);
+    } finally {
+      setRefreshing(false); // 데이터 로딩이 완료되면 새로고침 상태를 false로 설정
+    }
+  }, []); // 의존성 배열이 비어 있으므로 컴포넌트 마운트 시 한 번만 생성됩니다.
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]); // fetchPosts가 변경될 때마다 실행되도록 의존성 배열에 추가
+
+  const renderItem = React.useCallback(({ item, index }: { item: NearByPostsUpperResponse, index: number }) => {
+    if (!item.image_url) {
+      return null;
+    }
+
+    const marginRight = (index + 1) % NUM_COLUMNS === 0 ? 0 : ITEM_SPACING;
+
+    return (
+      <TouchableOpacity
+        onPress={() => handleItemPress(item.id)}
+        style={[{ marginRight: marginRight, marginBottom: ITEM_SPACING }]}
+      >
+        <Image source={{ uri: item.image_url }} style={styles.image} />
+      </TouchableOpacity>
+    );
+  }, [handleItemPress]);
 
   return (
-    // SafeAreaView를 사용하여 내용이 노치/상태 표시줄 영역을 침범하지 않도록 합니다.
     <SafeAreaView style={styles.safe}>
       <FlatList
         data={listData}
         keyExtractor={(item) => String(item.id)}
-        numColumns={3}
+        numColumns={NUM_COLUMNS}
         contentContainerStyle={styles.list}
-        columnWrapperStyle={styles.row}
-        renderItem={({ item }) => {
-          console.log(item.image_url);
-          return !item.image_url ? null : (
-            <TouchableOpacity onPress={() => handleItemPress(item.id)}>
-              <Image source={{ uri: item.image_url }} style={styles.image} />
-            </TouchableOpacity>
-          );
-        }}
+        renderItem={renderItem}
+        // 새로고침 기능 추가
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing} // 현재 새로고침 중인지 여부
+            onRefresh={fetchPosts} // 당겨서 새로고침 시 호출될 함수
+          />
+        }
       />
     </SafeAreaView>
   );
 }
 
-// 공통으로 사용할 스타일 시트
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#fff',
   },
+  list: {
+    paddingHorizontal: LIST_PADDING_HORIZONTAL,
+  },
+  image: {
+    width: ITEM_SIZE,
+    height: ITEM_SIZE,
+    borderRadius: 8,
+    backgroundColor: '#eee', // 이미지가 로딩되기 전이나 없을 때 배경색
+  },
+  // 기존에 사용되지 않는 스타일
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    // alignItems: 'center',
     justifyContent: 'center',
-    padding: 20, // 이 padding은 SafeAreaView 내부의 내용에 영향을 줍니다.
+    padding: 20,
   },
   text: {
     fontSize: 24,
@@ -92,23 +121,16 @@ const styles = StyleSheet.create({
     color: 'gray',
     textAlign: 'center',
   },
-  listContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
   listItem: {
-    // width:'100%',
-    flexDirection:'row',
-    justifyContent:'space-between',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     padding: 12,
     borderRadius: 8,
     backgroundColor: '#fafafa',
     marginBottom: 12,
-    // 그림자 효과 (iOS)
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    // 그림자 효과 (Android)
     elevation: 2,
   },
   itemTitle: {
@@ -120,34 +142,16 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 4,
   },
-  list: {
-    // FlatList content padding bottom 추가 가능
-    paddingHorizontal: 16, // 좌우 여백 추가
-    paddingTop: 0, // SafeAreaView가 상단 여백을 처리하므로 여기서는 0으로 설정
-  },
-  row: {
-    justifyContent: 'flex-start',
-    marginBottom: ITEM_MARGIN,
-  },
-  image: {
-    width: ITEM_SIZE,
-    height: ITEM_SIZE,
-    borderRadius: 8,
-    marginRight : ITEM_MARGIN,
-    backgroundColor: '#eee',
-  },
   itemImage: {
-    width: 50,                    // 원하는 썸네일 크기 지정
+    width: 50,
     height: 50,
     borderRadius: 4,
     backgroundColor: '#ddd',
   },
-  textContainer:{
-    flexDirection:'column'
+  textContainer: {
+    flexDirection: 'column'
   },
   imageContainer: {
     // justifyContent:'flex-end'
-
   }
-
 });
