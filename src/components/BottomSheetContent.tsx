@@ -1,27 +1,28 @@
-// components/BottomSheetContent.tsx
 import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
-import { PostResponse } from '../../api/post'; // PostResponse 타입 임포트
+import { useNavigation, NavigationProp } from '@react-navigation/native'; // <--- NEW: 네비게이션 훅 임포트
+import { PostResponse } from '../../api/post';
+import { TabThreeStackParamList } from '../navigation/TabThreeStack'; // <--- NEW: TabThree 스택 파라미터 타입 임포트
 
-// 변경된 부분: bottomSheetRef의 타입에 null을 명시적으로 허용합니다.
 interface BottomSheetContentProps {
   posts: PostResponse[];
   loadingPosts: boolean;
-  bottomSheetRef: React.RefObject<BottomSheet | null>; // null을 허용하도록 변경
+  bottomSheetRef: React.RefObject<BottomSheet | null>;
 }
 
-const BottomSheetContent: React.FC<BottomSheetContentProps> = ({ posts, loadingPosts, bottomSheetRef }) => {
+const BottomSheetContent: React.FC<BottomSheetContentProps> = ({ posts, loadingPosts }) => {
+  // <--- CHANGED: bottomSheetRef는 이제 의존성 배열에서 제거해도 됩니다.
+  // <--- NEW: useNavigation 훅을 사용하여 네비게이션 객체를 가져옵니다.
+  const navigation = useNavigation<NavigationProp<TabThreeStackParamList>>();
+
   const renderPostItem = useCallback(({ item }: { item: PostResponse }) => (
     <TouchableOpacity
       style={styles.postItem}
       onPress={() => {
-        console.log("게시글 아이템 클릭:", item.title);
-        // 게시글 아이템 클릭 시 100%로 확장
-        if (bottomSheetRef.current) { // bottomSheetRef.current가 null이 아닌지 확인
-          bottomSheetRef.current.snapToIndex(2); // 100%
-        }
-        // TODO: 필요한 경우 해당 게시글의 상세 정보를 표시하는 로직 추가
+        console.log("게시글 아이템 클릭, 상세 화면으로 이동:", item.title);
+        // <--- CHANGED: PostDetail 화면으로 이동하는 로직으로 변경
+        navigation.navigate('PostDetail', { postId: item.id.toString() });
       }}
     >
       <View style={[styles.itemContent, !item.image_url && styles.itemContentFullWidth]}>
@@ -33,8 +34,9 @@ const BottomSheetContent: React.FC<BottomSheetContentProps> = ({ posts, loadingP
         <Image source={{ uri: item.image_url }} style={styles.itemImage} />
       )}
     </TouchableOpacity>
-  ), [bottomSheetRef]); // bottomSheetRef를 의존성에 추가
+  ), [navigation]); // <--- CHANGED: 의존성 배열에 navigation 추가
 
+  // ... (나머지 코드는 동일: renderEmptyListComponent, renderListHeader, return 문, styles) ...
   const renderEmptyListComponent = useCallback(() => (
     <View style={styles.noPostsContainer}>
       {loadingPosts ? (
