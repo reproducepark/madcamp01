@@ -1,7 +1,7 @@
 // screens/TabOneScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { Text, View, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, TouchableOpacity, ActivityIndicator, Alert } from 'react-native'; // Alert import 추가
-import { NewPost, NearByPostsResponse, createPost, getNearbyPosts } from '../../api/post';
+import { Text, View, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native'; // Alert import 추가
+import { NearByPostsResponse, createPost, getNearbyPosts } from '../../api/post';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 
@@ -65,6 +65,7 @@ export function TabOneScreen() {
         content: description,
         lat: Number(userLat),
         lon: Number(userLon),
+        image_uri: imageUri, // 이미지 URI가 있을 경우에만 포함
       });
       console.log("게시물 성공적으로 생성:", postRes);
 

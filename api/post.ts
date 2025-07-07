@@ -112,6 +112,7 @@ export async function createPost(post: NewPost): Promise<NewPostResponse> {
             type: 'image/jpeg',
         } as any);
     }
+    console.log("포스트 요청 폼데이터 :", formData);
 
     const postRes = await fetch(`${BASE_URL}/posts`, {
         method: 'POST',

@@ -55,17 +55,14 @@ export function TabTwoScreen() {
         numColumns={3}
         contentContainerStyle={styles.list}
         columnWrapperStyle={styles.row}
-        renderItem={({ item }) => (
-          console.log(item.image_url),
-          <TouchableOpacity onPress={() => handleItemPress(item.id)}>
-            {
-              item.image_url && (
-                < Image source={{ uri: item.image_url }} style={styles.image} />
-              )
-            }
-            
-          </TouchableOpacity>
-        )}
+        renderItem={({ item }) => {
+          console.log(item.image_url);
+          return !item.image_url ? null : (
+            <TouchableOpacity onPress={() => handleItemPress(item.id)}>
+              <Image source={{ uri: item.image_url }} style={styles.image} />
+            </TouchableOpacity>
+          );
+        }}
       />
     </SafeAreaView>
   );
