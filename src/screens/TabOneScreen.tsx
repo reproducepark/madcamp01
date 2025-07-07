@@ -1,6 +1,6 @@
 // screens/TabOneScreen.tsx
-import React, { useState, useEffect } from 'react';
-import { Text, View, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native'; // Alert import 추가
+import React, { useState, useEffect, useCallback } from 'react';
+import { Text, View, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native'; // Alert import 추가
 import { NearByPostsResponse, createPost, getNearbyPosts } from '../../api/post';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
@@ -16,8 +16,9 @@ export function TabOneScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [listData, setListData] = useState<NearByPostsResponse[]>([]);
   const [loading, setLoading] = useState(true); // 로딩 상태 추가
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     try {
       setLoading(true); // 데이터 가져오기 시작 시 로딩 설정
       const rawLat = await AsyncStorage.getItem('userLat');
@@ -40,11 +41,17 @@ export function TabOneScreen() {
     } finally {
       setLoading(false); // 데이터 가져오기 완료 시 로딩 해제
     }
-  };
+  },[]);
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [fetchPosts]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchPosts();
+    setRefreshing(false);
+  }, [fetchPosts]);
 
   const handleAddItem = async (title: string, description: string, imageUri?: string) => {
     try {
@@ -113,6 +120,9 @@ export function TabOneScreen() {
             keyExtractor={(item) => String(item.id)}
             contentContainerStyle={styles.listContainer}
             renderItem={renderItem}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
             ListEmptyComponent={() => (
               <View style={styles.noPostsContainer}>
                 <Text style={styles.noPostsText}>아직 작성된 글이 없어요!</Text>
