@@ -1,454 +1,257 @@
-import React, { useState, useEffect } from 'react';
- import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
- import { NavigationContainer } from '@react-navigation/native';
- import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
- import { Ionicons } from '@expo/vector-icons';
- import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
- import * as Location from 'expo-location';
- import { getPostsInViewport, PostResponse, Viewport } from '../../api/post'; // Adjust the import path as needed
+// screens/TabThreeScreen.tsx
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, Alert, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
+import BottomSheet from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { getPostsInViewport, PostResponse, Viewport } from '../../api/post'; // Adjust the import path as needed
+import MapComponent from '../components/MapComponent'; // 새로 생성할 컴포넌트
+import BottomSheetContent from '../components/BottomSheetContent'; // 새로 생성할 컴포넌트
 
- const { width } = Dimensions.get('window');
- const ITEM_MARGIN = 8;
- const ITEM_SIZE = (width - 16 * 2 - ITEM_MARGIN * 2) / 3;
+export function TabThreeScreen() {
+  const [currentRegion, setCurrentRegion] = useState<null | Region>(null);
+  const [initialMapRegion, setInitialMapRegion] = useState<null | Region>(null);
+  const [posts, setPosts] = useState<PostResponse[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
- // Define a custom map style (e.g., 'Aubergine' from Snazzy Maps)
- // You can find many more at https://snazzymaps.com/
- const mapStyle = [
-  {
-    "featureType": "landscape.man_made",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#f7f7f7"
-      }
-    ]
-  },
-  {
-    "featureType": "poi.business",
-    "elementType": "labels",
-    "stylers": [
-      {
-        "weight": 0.5
-      }
-    ]
-  },
-  {
-    "featureType": "poi.business",
-    "elementType": "labels.icon",
-    "stylers": [
-      {
-        "visibility": "simplified"
-      }
-    ]
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "geometry.fill",
-    "stylers": [
-      {
-        "color": "#deeecf"
-      }
-    ]
-  },
-  {
-    "featureType": "road.arterial",
-    "elementType": "geometry.fill",
-    "stylers": [
-      {
-        "color": "#ffffff"
-      }
-    ]
-  },
-  {
-    "featureType": "road.arterial",
-    "elementType": "geometry.stroke",
-    "stylers": [
-      {
-        "color": "#d1cdc5"
-      }
-    ]
-  },
-  {
-    "featureType": "road.arterial",
-    "elementType": "labels",
-    "stylers": [
-      {
-        "visibility": "off"
-      }
-    ]
-  },
-  {
-    "featureType": "road.highway",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#fdf0b5"
-      }
-    ]
-  },
-  {
-    "featureType": "road.highway",
-    "elementType": "geometry.stroke",
-    "stylers": [
-      {
-        "color": "#ebcc79"
-      },
-      {
-        "weight": 1
-      }
-    ]
-  },
-  {
-    "featureType": "road.local",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#ffeb3b"
-      }
-    ]
-  },
-  {
-    "featureType": "road.local",
-    "elementType": "geometry.fill",
-    "stylers": [
-      {
-        "color": "#ffffff"
-      }
-    ]
-  },
-  {
-    "featureType": "road.local",
-    "elementType": "geometry.stroke",
-    "stylers": [
-      {
-        "color": "#d1cdc5"
-      }
-    ]
-  },
-  {
-    "featureType": "road.local",
-    "elementType": "labels",
-    "stylers": [
-      {
-        "visibility": "off"
-      }
-    ]
-  },
-  {
-    "featureType": "transit.station",
-    "elementType": "labels.text",
-    "stylers": [
-      {
-        "visibility": "off"
-      }
-    ]
-  },
-  {
-    "featureType": "water",
-    "elementType": "geometry.fill",
-    "stylers": [
-      {
-        "color": "#a5d1f3"
-      }
-    ]
-  }
-];
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
- export function TabThreeScreen() {
-   const [currentRegion, setCurrentRegion] = useState<null | Region>(null);
-   const [initialMapRegion, setInitialMapRegion] = useState<null | Region>(null);
-   const [posts, setPosts] = useState<PostResponse[]>([]);
-   const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
-   const [error, setError] = useState<string | null>(null);
+  const snapPoints = ['30%', '60%', '100%'];
 
-   useEffect(() => {
-     (async () => {
-       const { status } = await Location.requestForegroundPermissionsAsync();
-       if (status !== 'granted') {
-         Alert.alert('Permission Denied', 'Location access is needed to show your current position on the map.');
-         return;
-       }
+  // 초기 위치 설정 로직
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', '위치 접근 권한이 필요합니다.');
+        const defaultRegion = { latitude: 36.3504, longitude: 127.3845, latitudeDelta: 0.0922, longitudeDelta: 0.0421 };
+        setInitialMapRegion(defaultRegion);
+        setCurrentRegion(defaultRegion);
+        return;
+      }
 
-       try {
-         const { coords } = await Location.getCurrentPositionAsync({});
-         const regionData = {
-           latitude: coords.latitude,
-           longitude: coords.longitude,
-           latitudeDelta: 0.01,
-           longitudeDelta: 0.01,
-         };
-         setInitialMapRegion(regionData);
-         setCurrentRegion(regionData);
-       } catch (err) {
-         console.error("Error getting current position:", err);
-         Alert.alert('Location Error', 'Could not fetch your current location.');
-         // Set a default region if location cannot be fetched
-         setInitialMapRegion({
-           latitude: 36.3504, // Default to Daejeon latitude
-           longitude: 127.3845, // Default to Daejeon longitude
-           latitudeDelta: 0.0922,
-           longitudeDelta: 0.0421,
-         });
-         setCurrentRegion({
-           latitude: 36.3504,
-           longitude: 127.3845,
-           latitudeDelta: 0.0922,
-           longitudeDelta: 0.0421,
-         });
-       }
-     })();
-   }, []);
+      try {
+        const { coords } = await Location.getCurrentPositionAsync({});
+        const regionData = { latitude: coords.latitude, longitude: coords.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 };
+        setInitialMapRegion(regionData);
+        setCurrentRegion(regionData);
+      } catch (err) {
+        console.error("현재 위치를 가져오는 중 오류 발생:", err);
+        Alert.alert('위치 오류', '현재 위치를 가져올 수 없습니다.');
+        const defaultRegion = { latitude: 36.3504, longitude: 127.3845, latitudeDelta: 0.0922, longitudeDelta: 0.0421 };
+        setInitialMapRegion(defaultRegion);
+        setCurrentRegion(defaultRegion);
+      }
+    })();
+  }, []);
 
-   const handleLoadPosts = async () => {
-     if (!currentRegion) {
-       console.log("Map region not available yet.");
-       Alert.alert('Error', 'Map region not available yet. Please wait for the map to load.');
-       return;
-     }
+  const handleLoadPosts = async () => {
+    if (!currentRegion) {
+      console.log("지도 영역을 아직 사용할 수 없습니다.");
+      Alert.alert('오류', '지도 영역을 사용할 수 없습니다. 지도가 로드될 때까지 기다려 주세요.');
+      return;
+    }
 
-     setLoadingPosts(true);
-     setError(null);
-     setPosts([]); // Clear previous posts
+    setLoadingPosts(true);
+    setError(null);
 
-     try {
-       const viewport: Viewport = {
-         centerLat: currentRegion.latitude,
-         centerLon: currentRegion.longitude,
-         deltaLat: currentRegion.latitudeDelta,
-         deltaLon: currentRegion.longitudeDelta,
-         deltaRatioLat: 0.4, // Optional: Adjust if you want to scale the delta
-         deltaRatioLon: 0.4, // Optional: Adjust if you want to scale the delta
-       };
-       console.log("Fetching posts with viewport:", viewport);
-       const fetchedPosts = await getPostsInViewport(viewport);
-       setPosts(fetchedPosts);
-       console.log("Fetched posts:", fetchedPosts);
-     } catch (err) {
-       console.error("Error fetching posts:", err);
-       setError('Failed to load posts. Please try again.');
-     } finally {
-       setLoadingPosts(false);
-     }
-   };
+    try {
+      const viewport: Viewport = {
+        centerLat: currentRegion.latitude,
+        centerLon: currentRegion.longitude,
+        deltaLat: currentRegion.latitudeDelta,
+        deltaLon: currentRegion.longitudeDelta,
+        deltaRatioLat: 0.4,
+        deltaRatioLon: 0.4,
+      };
+      console.log("뷰포트에서 게시글 가져오는 중:", viewport);
+      const fetchedPosts = await getPostsInViewport(viewport);
+      setPosts(fetchedPosts);
+      console.log("가져온 게시글:", fetchedPosts);
 
-   if (!initialMapRegion) {
-     return (
-       <View style={styles.loading}>
-         <ActivityIndicator size="large" color="#007AFF" />
-         <Text style={{ marginTop: 10 }}>Loading map...</Text>
-       </View>
-     );
-   }
+      if (bottomSheetRef.current) {
+        if (fetchedPosts.length > 0) {
+          bottomSheetRef.current.snapToIndex(1); // 게시글이 있으면 60%로 열기
+        } else {
+          bottomSheetRef.current.snapToIndex(2); // 게시글이 없으면 100%로 열기 (안내문 표시)
+        }
+      }
 
-   return (
-     <View style={styles.mapContainer}>
-       <MapView
-         style={styles.map}
-         provider={PROVIDER_GOOGLE}
-         initialRegion={initialMapRegion}
-         onRegionChangeComplete={(region) => {
-           setCurrentRegion(region); // Update currentRegion on map interaction
-         }}
-         showsUserLocation
-         showsMyLocationButton
-         customMapStyle={mapStyle} // Apply the custom map style here
-       >
-         {posts.map((post) => (
-           <Marker
-             key={post.id}
-             coordinate={{ latitude: post.lat, longitude: post.lon }}
-             title={post.title}
-             description={post.content}
-           >
-             <View style={styles.customMarker}>
-               {/* This inner View creates the orange dot */}
-               <View style={styles.innerMarker} />
-             </View>
-           </Marker>
-         ))}
-       </MapView>
+    } catch (err) {
+      console.error("게시글 가져오는 중 오류 발생:", err);
+      setError('게시글을 불러오지 못했습니다. 다시 시도해 주세요.');
+      bottomSheetRef.current?.close(); // 오류 발생 시 닫음
+    } finally {
+      setLoadingPosts(false);
+    }
+  };
 
-       <TouchableOpacity
-         style={styles.loadPostsButton}
-         onPress={handleLoadPosts}
-         disabled={loadingPosts}
-       >
-         {loadingPosts ? (
-           <ActivityIndicator size="small" color="#007AFF" />
-         ) : (
-           <Text style={styles.loadPostsButtonText}>
-             <Ionicons name="location-outline" size={16} color="#007AFF" /> 이 지역의 글 불러오기
-           </Text>
-         )}
-       </TouchableOpacity>
+  const handleMarkerPress = useCallback((post: PostResponse) => {
+    console.log("마커 클릭:", post.title);
+    if (bottomSheetRef.current) {
+      bottomSheetRef.current?.snapToIndex(1); // 60%
+    }
+    // TODO: FlatList에서 해당 아이템으로 스크롤하는 로직 추가
+  }, []);
 
-       {error && (
-         <View style={styles.errorContainer}>
-           <Text style={styles.errorText}>{error}</Text>
-         </View>
-       )}
-        {posts.length > 0 && !loadingPosts && (
-         <View style={styles.postsCountContainer}>
-           <Text style={styles.postsCountText}>
-             <Ionicons name="documents-outline" size={14} color="#555" /> {posts.length}개의 글이 로드되었습니다.
-           </Text>
-         </View>
-       )}
-     </View>
-   );
- }
+  const toggleBottomSheet = useCallback(() => {
+    if (isBottomSheetOpen) {
+      bottomSheetRef.current?.close();
+    } else {
+      if (bottomSheetRef.current) {
+        if (posts.length > 0) {
+          bottomSheetRef.current?.snapToIndex(1);
+        } else {
+          bottomSheetRef.current?.snapToIndex(2);
+        }
+      }
+    }
+  }, [isBottomSheetOpen, posts.length]);
 
- const styles = StyleSheet.create({
-   safe: {
-     flex: 1,
-     backgroundColor: '#fff',
-   },
-   container: {
-     flex: 1,
-     backgroundColor: '#fff',
-     justifyContent: 'center',
-     padding: 20,
-   },
-   text: {
-     fontSize: 24,
-     fontWeight: 'bold',
-     marginBottom: 10,
-     textAlign: 'center',
-   },
-   subText: {
-     fontSize: 16,
-     color: 'gray',
-     textAlign: 'center',
-   },
-   listContainer: {
-     paddingHorizontal: 16,
-     paddingVertical: 8,
-   },
-   listItem: {
-     flexDirection:'row',
-     justifyContent:'space-between',
-     padding: 12,
-     borderRadius: 8,
-     backgroundColor: '#fafafa',
-     marginBottom: 12,
-     shadowColor: '#000',
-     shadowOpacity: 0.1,
-     shadowRadius: 4,
-     elevation: 2,
-   },
-   itemTitle: {
-     fontSize: 16,
-     fontWeight: '500',
-   },
-   itemSubtitle: {
-     fontSize: 12,
-     color: '#999',
-     marginTop: 4,
-   },
-   list: {},
-   row: {
-     justifyContent: 'flex-start',
-     marginBottom: ITEM_MARGIN,
-   },
-   image: {
-     width: ITEM_SIZE,
-     height: ITEM_SIZE,
-     borderRadius: 8,
-     marginRight : ITEM_MARGIN,
-     backgroundColor: '#eee',
-   },
-   itemImage: {
-     width: 50,
-     height: 50,
-     borderRadius: 4,
-     backgroundColor: '#ddd',
-   },
-   textContainer:{
-     flexDirection:'column'
-   },
-   imageContainer: {},
-   loading: {
-     flex: 1,
-     alignItems: 'center',
-     justifyContent: 'center',
-   },
-   mapContainer: {
-     flex: 1,
-   },
-   map: {
-     flex: 1,
-   },
-   loadPostsButton: {
-     position: 'absolute',
-     top: 20,
-     alignSelf: 'center',
-     backgroundColor: '#fff',
-     paddingVertical: 10,
-     paddingHorizontal: 15,
-     borderRadius: 20,
-     shadowColor: '#000',
-     shadowOffset: { width: 0, height: 2 },
-     shadowOpacity: 0.25,
-     shadowRadius: 3.84,
-     elevation: 5,
-     flexDirection: 'row',
-     alignItems: 'center',
-   },
-   loadPostsButtonText: {
-     fontSize: 16,
-     fontWeight: 'bold',
-     color: '#007AFF',
-     marginLeft: 5,
-   },
-   errorContainer: {
-     position: 'absolute',
-     bottom: 20,
-     alignSelf: 'center',
-     backgroundColor: 'rgba(255, 0, 0, 0.8)',
-     paddingVertical: 8,
-     paddingHorizontal: 15,
-     borderRadius: 10,
-   },
-   errorText: {
-     color: '#fff',
-     fontSize: 14,
-     fontWeight: 'bold',
-   },
-   postsCountContainer: {
-     position: 'absolute',
-     bottom: 20,
-     alignSelf: 'center',
-     backgroundColor: 'rgba(255, 255, 255, 0.9)',
-     paddingVertical: 8,
-     paddingHorizontal: 15,
-     borderRadius: 10,
-     flexDirection: 'row',
-     alignItems: 'center',
-     shadowColor: '#000',
-     shadowOffset: { width: 0, height: 2 },
-     shadowOpacity: 0.15,
-     shadowRadius: 3,
-     elevation: 3,
-   },
-   postsCountText: {
-     color: '#555',
-     fontSize: 14,
-     marginLeft: 5,
-   },
-   customMarker: {
-     height: 18, // Slightly larger for the border
-     width: 18,  // Slightly larger for the border
-     borderRadius: 9, // Half of height/width for a perfect circle
-     backgroundColor: 'orange', // This will be the outer white circle/border
-     borderWidth: 2, // Width of the white border
-     borderColor: 'black', // Color of the border
-     alignItems: 'center',
-     justifyContent: 'center',
-   },
-   innerMarker: {
-     height: 12, // Inner orange circle size
-     width: 12,  // Inner orange circle size
-     borderRadius: 6, // Half of inner height/width for a perfect circle
-     backgroundColor: 'orange', // Orange fill color
-   },
- });
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      {!initialMapRegion ? (
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={{ marginTop: 10 }}>지도를 불러오는 중...</Text>
+        </View>
+      ) : (
+        <View style={styles.mapContainer}>
+          <MapComponent
+            initialMapRegion={initialMapRegion}
+            currentRegion={currentRegion}
+            onRegionChangeComplete={setCurrentRegion}
+            posts={posts}
+            onMarkerPress={handleMarkerPress}
+          />
+
+          {!isBottomSheetOpen && (
+            <TouchableOpacity
+              style={styles.loadPostsButton}
+              onPress={handleLoadPosts}
+              disabled={loadingPosts}
+            >
+              {loadingPosts ? (
+                <ActivityIndicator size="small" color="#007AFF" />
+              ) : (
+                <Text style={styles.loadPostsButtonText}>
+                  <Ionicons name="location-outline" size={16} color="#007AFF" /> 이 지역 검색하기
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
+
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={styles.toggleListButton}
+            onPress={toggleBottomSheet}
+          >
+            <Text style={styles.toggleListButtonText}>
+              {isBottomSheetOpen ? '목록 숨기기' : '목록 보기'}
+            </Text>
+          </TouchableOpacity>
+
+          <BottomSheet
+            ref={bottomSheetRef}
+            index={-1}
+            snapPoints={snapPoints}
+            enablePanDownToClose={true}
+            onChange={(index) => setIsBottomSheetOpen(index > -1)}
+          >
+            <BottomSheetContent
+              posts={posts}
+              loadingPosts={loadingPosts}
+              bottomSheetRef={bottomSheetRef} // BottomSheetContent에서 직접 제어할 수 있도록 ref 전달
+            />
+          </BottomSheet>
+        </View>
+      )}
+    </GestureHandlerRootView>
+  );
+}
+
+const styles = StyleSheet.create({
+  mapContainer: {
+    flex: 1,
+  },
+  loadPostsButton: {
+    position: 'absolute',
+    top: 60,
+    alignSelf: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  loadPostsButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    marginLeft: 5,
+  },
+  toggleListButton: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    backgroundColor: '#ff7f00',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    zIndex: 1,
+  },
+  // 이곳에 toggleListButtonText 스타일을 추가합니다.
+  toggleListButtonText: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorContainer: {
+    position: 'absolute',
+    top: 100,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    zIndex: 1,
+  },
+  errorText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+});
+
+// MapView에서 Region 타입을 사용하므로 여기에 정의
+interface Region {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+}
