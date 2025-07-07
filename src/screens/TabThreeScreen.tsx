@@ -48,19 +48,6 @@ export function TabThreeScreen() {
     })();
   }, []);
 
-  // 게시글 상태 변경 시 BottomSheet 조정
-  useEffect(() => {
-    if (bottomSheetRef.current) {
-      if (posts.length > 0) {
-        // 게시글이 있으면 60% (중간)로 스냅 (snapPoints의 인덱스 1)
-        bottomSheetRef.current?.snapToIndex(1);
-      } else {
-        // 게시글이 없으면 BottomSheet를 100% (인덱스 2)로 스냅하여 안내문 표시
-        bottomSheetRef.current?.snapToIndex(2);
-      }
-    }
-  }, [posts]);
-
   const handleLoadPosts = async () => {
     if (!currentRegion) {
       console.log("지도 영역을 아직 사용할 수 없습니다.");
@@ -70,7 +57,6 @@ export function TabThreeScreen() {
 
     setLoadingPosts(true);
     setError(null);
-    setPosts([]); // 이전 게시글 초기화
 
     try {
       const viewport: Viewport = {
@@ -85,6 +71,14 @@ export function TabThreeScreen() {
       const fetchedPosts = await getPostsInViewport(viewport);
       setPosts(fetchedPosts);
       console.log("가져온 게시글:", fetchedPosts);
+
+      if (bottomSheetRef.current) {
+        if (fetchedPosts.length > 0) {
+          bottomSheetRef.current.snapToIndex(1); // 게시글이 있으면 60%로 열기
+        } else {
+          bottomSheetRef.current.snapToIndex(2); // 게시글이 없으면 100%로 열기 (안내문 표시)
+      }
+    }
 
     } catch (err) {
       console.error("게시글 가져오는 중 오류 발생:", err);
