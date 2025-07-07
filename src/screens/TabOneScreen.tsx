@@ -17,32 +17,32 @@ export function TabOneScreen() {
   const [listData, setListData] = useState<NearByPostsResponse[]>([]);
   const [loading, setLoading] = useState(true); // 로딩 상태 추가
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        setLoading(true); // 데이터 가져오기 시작 시 로딩 설정
-        const rawLat = await AsyncStorage.getItem('userLat');
-        const rawLon = await AsyncStorage.getItem('userLon');
+  const fetchPosts = async () => {
+    try {
+      setLoading(true); // 데이터 가져오기 시작 시 로딩 설정
+      const rawLat = await AsyncStorage.getItem('userLat');
+      const rawLon = await AsyncStorage.getItem('userLon');
 
-        if (!rawLat || !rawLon) {
-          console.error('위치 정보 없음: 먼저 위치를 받아 와야 합니다.');
-          Alert.alert('오류', '위치 정보를 가져올 수 없습니다. 설정에서 위치 권한을 확인해주세요.');
-          return;
-        }
-        const lat = Number(rawLat);
-        const lon = Number(rawLon);
-
-        const data = await getNearbyPosts(lat, lon);
-        setListData(data.nearbyPosts);
-
-      } catch (e: any) {
-        console.error('근처 글 조회 실패:', e);
-        Alert.alert('오류', '글을 불러오는 데 실패했습니다: ' + e.message);
-      } finally {
-        setLoading(false); // 데이터 가져오기 완료 시 로딩 해제
+      if (!rawLat || !rawLon) {
+        console.error('위치 정보 없음: 먼저 위치를 받아 와야 합니다.');
+        Alert.alert('오류', '위치 정보를 가져올 수 없습니다. 설정에서 위치 권한을 확인해주세요.');
+        return;
       }
-    };
+      const lat = Number(rawLat);
+      const lon = Number(rawLon);
 
+      const data = await getNearbyPosts(lat, lon);
+      setListData(data.nearbyPosts);
+
+    } catch (e: any) {
+      console.error('근처 글 조회 실패:', e);
+      Alert.alert('오류', '글을 불러오는 데 실패했습니다: ' + e.message);
+    } finally {
+      setLoading(false); // 데이터 가져오기 완료 시 로딩 해제
+    }
+  };
+
+  useEffect(() => {
     fetchPosts();
   }, []);
 
@@ -73,6 +73,7 @@ export function TabOneScreen() {
       Alert.alert('오류', '게시물을 생성하는 데 실패했습니다: ' + e.message);
     } finally {
       setModalVisible(false);
+      fetchPosts();
     }
   };
 
