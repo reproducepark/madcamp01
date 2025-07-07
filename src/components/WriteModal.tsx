@@ -13,7 +13,8 @@ import {
   TouchableWithoutFeedback,
   Keyboard
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker'; // ImagePicker 임포트
+import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator'; // ImageManipulator 임포트
 
 interface WriteModalProps {
   visible: boolean;
@@ -54,17 +55,28 @@ export function WriteModal({ visible, onClose, onSave }: WriteModalProps) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-        // ✅ Use ImagePicker.MediaType instead of MediaTypeOptions
-        mediaTypes: ['images'],
+        mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ ImagePicker.MediaTypeOptions 사용
         quality: 1,
     });
 
     if (!result.canceled) {
         const pickedImageUri = result.assets[0].uri;
-        console.log('선택된 이미지 URI:', pickedImageUri);
-        Alert.alert('사진 첨부', `사진이 선택되었습니다: ${pickedImageUri.substring(0, 30)}...`);
 
-        setImageUri(pickedImageUri);
+        try {
+            // 이미지 압축
+            const manipResult = await ImageManipulator.manipulateAsync(
+              pickedImageUri,
+              [{ resize: { width: 1200 } }], // 예시: 가로 1200px로 리사이즈
+              { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // 압축률 70%, JPEG 형식
+            );
+            console.log('압축된 이미지 URI:', manipResult.uri);
+            Alert.alert('사진 첨부', `사진이 압축 및 선택되었습니다: ${manipResult.uri.substring(0, 30)}...`);
+            setImageUri(manipResult.uri);
+        } catch (error) {
+            console.error("이미지 압축 중 오류 발생:", error);
+            Alert.alert('오류', '이미지 압축에 실패했습니다.');
+            setImageUri(pickedImageUri); // 압축 실패 시 원본 URI 사용
+        }
     } else {
         Alert.alert('알림', '사진 선택이 취소되었습니다.');
     }
