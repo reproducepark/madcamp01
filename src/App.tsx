@@ -6,22 +6,30 @@ import { Ionicons } from '@expo/vector-icons';
 import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-declare global {
-  // eslint-disable-next-line no-var
-  var AsyncStorage: any;
-}
-if (__DEV__) { // 개발 모드에서만 실행되도록 보호
-  global.AsyncStorage = AsyncStorage;
-  console.log('AsyncStorage object exposed globally for debugging.');
-}
+import { TabOneNavigator } from './navigation/TabOneStack'; // TabOne Navigator 임포트
+import { TabTwoNavigator } from './navigation/TabTwoStack'; // <--- NEW IMPORT: TabTwo Navigator 임포트
 
-import { TabOneScreen } from './screens/TabOneScreen';
-import { TabTwoScreen } from './screens/TabTwoScreen';
 import { TabThreeScreen } from './screens/TabThreeScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import { OnboardResponse } from '../api/post';
 
-const Tab = createBottomTabNavigator();
+declare global {
+  // eslint-disable-next-line no-var
+  var AsyncStorage: any;
+}
+if (__DEV__) {
+  global.AsyncStorage = AsyncStorage;
+  console.log('AsyncStorage object exposed globally for debugging.');
+}
+
+// Bottom Tab Navigator의 파라미터 목록을 정의합니다.
+export type RootTabParamList = {
+  리스트: undefined; // 이 탭은 TabOneNavigator를 렌더링
+  갤러리: undefined; // <--- CHANGED: 이 탭은 TabTwoNavigator를 렌더링
+  지도: undefined;
+};
+
+const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -48,18 +56,9 @@ export default function App() {
     checkOnboardingStatus();
   }, []);
 
-  // 온보딩 완료 및 닉네임 저장 처리 함수
-  // const handleOnboardingComplete = async (nickname: string) => {
   const handleOnboardingComplete = async (user: OnboardResponse) => {
     try {
-      // const newUserID = 'test-uuid-12345';
-
       const { nickname, userId, adminDong, lat, lon} = user;
-      // await AsyncStorage.setItem('userID', userId);
-      // await AsyncStorage.setItem('userNickname', nickname); // 닉네임 저장
-      // await AsyncStorage.setItem('userLat', String(lat)); // 닉네임 저장
-      // await AsyncStorage.setItem('userLon', String(lon)); // 닉네임 저장
-      // await AsyncStorage.setItem('userAdminDong', adminDong); // 닉네임 저장
 
       await AsyncStorage.multiSet([
         ['userID',        userId         ],
@@ -88,7 +87,6 @@ export default function App() {
   }
 
   if (isFirstLaunch) {
-    // 온보딩 스크린에 닉네임 입력 완료 콜백 전달
     return <OnboardingScreen onFinishOnboarding={handleOnboardingComplete} />;
   }
 
@@ -140,13 +138,13 @@ export default function App() {
       >
         <Tab.Screen
           name="리스트"
-          component={TabOneScreen}
-          options={{ title: '리스트' }}
+          component={TabOneNavigator}
+          options={{ title: '리스트', headerShown: false }}
         />
         <Tab.Screen
           name="갤러리"
-          component={TabTwoScreen}
-          options={{ title: '갤러리' }}
+          component={TabTwoNavigator} // <--- CHANGED: TabTwoNavigator를 사용
+          options={{ title: '갤러리', headerShown: false }} // <--- 헤더 숨기기
         />
         <Tab.Screen
           name="지도"

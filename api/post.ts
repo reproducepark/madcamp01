@@ -1,3 +1,5 @@
+//api/post.ts
+
 import axios from 'axios';
 import { BASE_URL } from '@env';
 
@@ -20,7 +22,27 @@ export interface OnboardResponse {
   // 그 외 프로필 필드가 더 있다면 여기에 추가
 }
 
+export interface PostResponse {
+  id: string;
+  user_id: string;
+  title: string;
+  content: string;
+  image_url: string | null; // Assuming image_url can be null if no image
+  admin_dong: string;
+  created_at: string; // Assuming created_at is a string (e.g., ISO format)
+  nickname: string;
+  lat: number; // Add lat to PostResponse
+  lon: number; // Add lon to PostResponse
+}
 
+export interface Viewport {
+  centerLat: number;
+  centerLon: number;
+  deltaLat: number;
+  deltaLon: number;
+  deltaRatioLat?: number;
+  deltaRatioLon?: number;
+}
 
 export async function createPost(post: PostPayload) {
     const { userId, title, content, lat, lon, adminDong, imageUri } = post;
@@ -41,15 +63,12 @@ export async function createPost(post: PostPayload) {
             uri: imageUri,
             name: imageUri.split('/').pop() || 'photo.jpg',
             type: 'image/jpeg',
-        } as any); 
+        } as any);
     }
 
-    // console.log(`${BASE_URL}/posts`);
     const postRes = await fetch(`${BASE_URL}/posts`, {
         method: 'POST',
         body: formData,
-    // 헤더를 직접 설정하지 마세요!
-    // fetch가 자동으로 "Content-Type: multipart/form-data; boundary=…"를 붙여 줍니다.
     });
 
     if (!postRes.ok) {
@@ -60,9 +79,55 @@ export async function createPost(post: PostPayload) {
     const data=await postRes.json()
 
     console.log("포스트 응답 :", data)
-    
+
     return data
 
 }
 
+export async function getPostById(postId: string): Promise<PostResponse> {
+  console.log("Fetching post with ID:", postId);
+  console.log("Request URL:", `${BASE_URL}/posts/${postId}`);
 
+  const response = await fetch(`${BASE_URL}/posts/${postId}`);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+  }
+
+  const data: PostResponse = await response.json();
+  console.log("Post response:", data);
+  return data;
+}
+
+export async function getPostsInViewport(viewport: Viewport): Promise<PostResponse[]> {
+  let { centerLat, centerLon, deltaLat, deltaLon, deltaRatioLat, deltaRatioLon } = viewport;
+
+  // 비율 파라미터가 제공되면 델타 값을 조절합니다.
+  if (deltaRatioLat !== undefined) {
+    deltaLat *= deltaRatioLat;
+  }
+  if (deltaRatioLon !== undefined) {
+    deltaLon *= deltaRatioLon;
+  }
+
+  const url = new URL(`${BASE_URL}/posts/nearbyviewport`);
+  url.searchParams.append('centerLat', String(centerLat));
+  url.searchParams.append('centerLon', String(centerLon));
+  url.searchParams.append('deltaLat', String(deltaLat));
+  url.searchParams.append('deltaLon', String(deltaLon));
+
+  console.log("Fetching posts in viewport with URL:", url.toString());
+
+  const response = await fetch(url.toString());
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log("Posts in viewport response:", data);
+
+  return data.postsInViewport as PostResponse[];
+}

@@ -1,254 +1,454 @@
-// src/screens/TabThreeScreen.tsx
+import React, { useState, useEffect } from 'react';
+ import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+ import { NavigationContainer } from '@react-navigation/native';
+ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+ import { Ionicons } from '@expo/vector-icons';
+ import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+ import * as Location from 'expo-location';
+ import { getPostsInViewport, PostResponse, Viewport } from '../../api/post'; // Adjust the import path as needed
 
-import React, {useState, useEffect} from 'react';
-import { Text, View, ScrollView, SafeAreaView, StyleSheet, FlatList, Image, Dimensions, ActivityIndicator } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons'; // Expo에서 제공하는 아이콘 라이브러리
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import * as Location from 'expo-location';
+ const { width } = Dimensions.get('window');
+ const ITEM_MARGIN = 8;
+ const ITEM_SIZE = (width - 16 * 2 - ITEM_MARGIN * 2) / 3;
 
-const { width } = Dimensions.get('window');
-// 한 행에 3개씩 배치, 좌우 패딩 16씩, 아이템 간 간격 8씩
-const ITEM_MARGIN = 8;
-const ITEM_SIZE = (width - 16 * 2 - ITEM_MARGIN * 2) / 3;
-
-
-const DATA = [
+ // Define a custom map style (e.g., 'Aubergine' from Snazzy Maps)
+ // You can find many more at https://snazzymaps.com/
+ const mapStyle = [
   {
-    id: '1',
-    image: require('../../assets/adaptive-icon.png'),
-    title: '맛집 A',
-    description: '맛집 A입니다'
+    "featureType": "landscape.man_made",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#f7f7f7"
+      }
+    ]
   },
   {
-    id: '2',
-    image: require('../../assets/favicon.png'),
-    title: '카페 B',
-    description: '카페 B입니다'
+    "featureType": "poi.business",
+    "elementType": "labels",
+    "stylers": [
+      {
+        "weight": 0.5
+      }
+    ]
   },
   {
-    id: '3',
-    image: require('../../assets/icon.png'),
-    title: '풍경 C',
-    description: '풍경 C입니다'
+    "featureType": "poi.business",
+    "elementType": "labels.icon",
+    "stylers": [
+      {
+        "visibility": "simplified"
+      }
+    ]
   },
   {
-    id: '4',
-    image: require('../../assets/splash-icon.png'),
-    title: '전시 D',
-    description: '전시 D입니다'
+    "featureType": "poi.park",
+    "elementType": "geometry.fill",
+    "stylers": [
+      {
+        "color": "#deeecf"
+      }
+    ]
   },
   {
-    id: '5',
-    image: require('../../assets/splash-icon.png'),
-    title: '전시 D',
-    description: '전시 D입니다'
+    "featureType": "road.arterial",
+    "elementType": "geometry.fill",
+    "stylers": [
+      {
+        "color": "#ffffff"
+      }
+    ]
   },
   {
-    id: '6',
-    image: require('../../assets/splash-icon.png'),
-    title: '전시 D',
-    description: '전시 D입니다'
+    "featureType": "road.arterial",
+    "elementType": "geometry.stroke",
+    "stylers": [
+      {
+        "color": "#d1cdc5"
+      }
+    ]
   },
   {
-    id: '7',
-    image: require('../../assets/splash-icon.png'),
-    title: '전시 D',
-    description: '전시 D입니다'
+    "featureType": "road.arterial",
+    "elementType": "labels",
+    "stylers": [
+      {
+        "visibility": "off"
+      }
+    ]
   },
   {
-    id: '8',
-    image: require('../../assets/splash-icon.png'),
-    title: '전시 D',
-    description: '전시 D입니다'
+    "featureType": "road.highway",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#fdf0b5"
+      }
+    ]
   },
+  {
+    "featureType": "road.highway",
+    "elementType": "geometry.stroke",
+    "stylers": [
+      {
+        "color": "#ebcc79"
+      },
+      {
+        "weight": 1
+      }
+    ]
+  },
+  {
+    "featureType": "road.local",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#ffeb3b"
+      }
+    ]
+  },
+  {
+    "featureType": "road.local",
+    "elementType": "geometry.fill",
+    "stylers": [
+      {
+        "color": "#ffffff"
+      }
+    ]
+  },
+  {
+    "featureType": "road.local",
+    "elementType": "geometry.stroke",
+    "stylers": [
+      {
+        "color": "#d1cdc5"
+      }
+    ]
+  },
+  {
+    "featureType": "road.local",
+    "elementType": "labels",
+    "stylers": [
+      {
+        "visibility": "off"
+      }
+    ]
+  },
+  {
+    "featureType": "transit.station",
+    "elementType": "labels.text",
+    "stylers": [
+      {
+        "visibility": "off"
+      }
+    ]
+  },
+  {
+    "featureType": "water",
+    "elementType": "geometry.fill",
+    "stylers": [
+      {
+        "color": "#a5d1f3"
+      }
+    ]
+  }
 ];
 
-export function TabThreeScreen() {
-  const [region, setRegion] = useState<null | {
-    latitude: number;
-    longitude: number;
-    latitudeDelta: number;
-    longitudeDelta: number;
-  }>(null);
+ export function TabThreeScreen() {
+   const [currentRegion, setCurrentRegion] = useState<null | Region>(null);
+   const [initialMapRegion, setInitialMapRegion] = useState<null | Region>(null);
+   const [posts, setPosts] = useState<PostResponse[]>([]);
+   const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
+   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      // 위치 권한 요청
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
+   useEffect(() => {
+     (async () => {
+       const { status } = await Location.requestForegroundPermissionsAsync();
+       if (status !== 'granted') {
+         Alert.alert('Permission Denied', 'Location access is needed to show your current position on the map.');
+         return;
+       }
 
-      // 현재 위치 받아오기
-      const { coords } = await Location.getCurrentPositionAsync({});
-      setRegion({
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      });
-    })();
-  }, []);
+       try {
+         const { coords } = await Location.getCurrentPositionAsync({});
+         const regionData = {
+           latitude: coords.latitude,
+           longitude: coords.longitude,
+           latitudeDelta: 0.01,
+           longitudeDelta: 0.01,
+         };
+         setInitialMapRegion(regionData);
+         setCurrentRegion(regionData);
+       } catch (err) {
+         console.error("Error getting current position:", err);
+         Alert.alert('Location Error', 'Could not fetch your current location.');
+         // Set a default region if location cannot be fetched
+         setInitialMapRegion({
+           latitude: 36.3504, // Default to Daejeon latitude
+           longitude: 127.3845, // Default to Daejeon longitude
+           latitudeDelta: 0.0922,
+           longitudeDelta: 0.0421,
+         });
+         setCurrentRegion({
+           latitude: 36.3504,
+           longitude: 127.3845,
+           latitudeDelta: 0.0922,
+           longitudeDelta: 0.0421,
+         });
+       }
+     })();
+   }, []);
 
-  if (!region) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
+   const handleLoadPosts = async () => {
+     if (!currentRegion) {
+       console.log("Map region not available yet.");
+       Alert.alert('Error', 'Map region not available yet. Please wait for the map to load.');
+       return;
+     }
 
-  return (
-    <MapView
-      style={styles.map}
-      provider={PROVIDER_GOOGLE}
-      initialRegion={region}
-      showsUserLocation
-      showsMyLocationButton
-    >
-      {/* <Marker coordinate={region} title="내 위치" /> */}
-    </MapView>
-  );
-}
+     setLoadingPosts(true);
+     setError(null);
+     setPosts([]); // Clear previous posts
 
+     try {
+       const viewport: Viewport = {
+         centerLat: currentRegion.latitude,
+         centerLon: currentRegion.longitude,
+         deltaLat: currentRegion.latitudeDelta,
+         deltaLon: currentRegion.longitudeDelta,
+         deltaRatioLat: 0.4, // Optional: Adjust if you want to scale the delta
+         deltaRatioLon: 0.4, // Optional: Adjust if you want to scale the delta
+       };
+       console.log("Fetching posts with viewport:", viewport);
+       const fetchedPosts = await getPostsInViewport(viewport);
+       setPosts(fetchedPosts);
+       console.log("Fetched posts:", fetchedPosts);
+     } catch (err) {
+       console.error("Error fetching posts:", err);
+       setError('Failed to load posts. Please try again.');
+     } finally {
+       setLoadingPosts(false);
+     }
+   };
 
-// 하단 탭 네비게이터 생성
-// const Tab = createBottomTabNavigator();
+   if (!initialMapRegion) {
+     return (
+       <View style={styles.loading}>
+         <ActivityIndicator size="large" color="#007AFF" />
+         <Text style={{ marginTop: 10 }}>Loading map...</Text>
+       </View>
+     );
+   }
 
-// export default function App() {
-//   return (
-//     // NavigationContainer는 전체 네비게이션 구조를 감싸야 합니다.
-//     <NavigationContainer>
-//       {/* Tab.Navigator가 실제 탭 UI를 렌더링합니다. */}
-//       <Tab.Navigator
-//         screenOptions={({ route }) => ({
-//           // 각 탭에 아이콘을 설정합니다.
-//           tabBarIcon: ({ focused, color, size }) => {
-//             let iconName;
+   return (
+     <View style={styles.mapContainer}>
+       <MapView
+         style={styles.map}
+         provider={PROVIDER_GOOGLE}
+         initialRegion={initialMapRegion}
+         onRegionChangeComplete={(region) => {
+           setCurrentRegion(region); // Update currentRegion on map interaction
+         }}
+         showsUserLocation
+         showsMyLocationButton
+         customMapStyle={mapStyle} // Apply the custom map style here
+       >
+         {posts.map((post) => (
+           <Marker
+             key={post.id}
+             coordinate={{ latitude: post.lat, longitude: post.lon }}
+             title={post.title}
+             description={post.content}
+           >
+             <View style={styles.customMarker}>
+               {/* This inner View creates the orange dot */}
+               <View style={styles.innerMarker} />
+             </View>
+           </Marker>
+         ))}
+       </MapView>
 
-//             if (route.name === '연락처') {
-//               iconName = focused ? 'people' : 'people-outline';
-//             } else if (route.name === '갤러리') {
-//               iconName = focused ? 'images' : 'images-outline';
-//             } else if (route.name === '자유주제') {
-//               iconName = focused ? 'star' : 'star-outline';
-//             }
+       <TouchableOpacity
+         style={styles.loadPostsButton}
+         onPress={handleLoadPosts}
+         disabled={loadingPosts}
+       >
+         {loadingPosts ? (
+           <ActivityIndicator size="small" color="#007AFF" />
+         ) : (
+           <Text style={styles.loadPostsButtonText}>
+             <Ionicons name="location-outline" size={16} color="#007AFF" /> 이 지역의 글 불러오기
+           </Text>
+         )}
+       </TouchableOpacity>
 
-//             // Ionicons 컴포넌트를 사용하여 아이콘을 렌더링합니다.
-//             return <Ionicons name={iconName} size={size} color={color} />;
-//           },
-//           // 활성 탭과 비활성 탭의 색상을 설정합니다.
-//           tabBarActiveTintColor: 'tomato',
-//           tabBarInactiveTintColor: 'gray',
-//           // 탭 바의 스타일을 설정합니다.
-//           tabBarStyle: {
-//             backgroundColor: '#f8f8f8',
-//           },
-//           // 헤더의 스타일을 설정합니다.
-//           headerStyle: {
-//             backgroundColor: '#f4511e',
-//           },
-//           headerTintColor: '#fff',
-//           headerTitleStyle: {
-//             fontWeight: 'bold',
-//           },
-//         })}
-//       >
-//         {/* 각 탭 화면을 정의합니다. */}
-//         <Tab.Screen name="연락처" component={TabOneScreen} />
-//         <Tab.Screen name="갤러리" component={TabTwoScreen} />
-//         <Tab.Screen name="자유주제" component={TabThreeScreen} />
-//       </Tab.Navigator>
-//     </NavigationContainer>
-//   );
-// }
+       {error && (
+         <View style={styles.errorContainer}>
+           <Text style={styles.errorText}>{error}</Text>
+         </View>
+       )}
+        {posts.length > 0 && !loadingPosts && (
+         <View style={styles.postsCountContainer}>
+           <Text style={styles.postsCountText}>
+             <Ionicons name="documents-outline" size={14} color="#555" /> {posts.length}개의 글이 로드되었습니다.
+           </Text>
+         </View>
+       )}
+     </View>
+   );
+ }
 
-// 공통으로 사용할 스타일 시트
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    // alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  text: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  subText: {
-    fontSize: 16,
-    color: 'gray',
-    textAlign: 'center',
-  },
-  listContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  listItem: {
-    // width:'100%',
-    flexDirection:'row',
-    justifyContent:'space-between',
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#fafafa',
-    marginBottom: 12,
-    // 그림자 효과 (iOS)
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    // 그림자 효과 (Android)
-    elevation: 2,
-  },
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  itemSubtitle: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-  },
-  list: {
-    // FlatList content padding bottom 추가 가능
-  },
-  row: {
-    justifyContent: 'flex-start',
-    marginBottom: ITEM_MARGIN,
-  },
-  image: {
-    width: ITEM_SIZE,
-    height: ITEM_SIZE,
-    borderRadius: 8,
-    marginRight : ITEM_MARGIN,
-    backgroundColor: '#eee',
-  },
-  itemImage: {
-    width: 50,                    // 원하는 썸네일 크기 지정
-    height: 50,
-    borderRadius: 4,
-    backgroundColor: '#ddd',
-  },
-  textContainer:{
-    flexDirection:'column'
-  },
-  imageContainer: {
-    // justifyContent:'flex-end'
-
-  },
-  loading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  map: {
-    flex: 1,
-  },
-  
-});
+ const styles = StyleSheet.create({
+   safe: {
+     flex: 1,
+     backgroundColor: '#fff',
+   },
+   container: {
+     flex: 1,
+     backgroundColor: '#fff',
+     justifyContent: 'center',
+     padding: 20,
+   },
+   text: {
+     fontSize: 24,
+     fontWeight: 'bold',
+     marginBottom: 10,
+     textAlign: 'center',
+   },
+   subText: {
+     fontSize: 16,
+     color: 'gray',
+     textAlign: 'center',
+   },
+   listContainer: {
+     paddingHorizontal: 16,
+     paddingVertical: 8,
+   },
+   listItem: {
+     flexDirection:'row',
+     justifyContent:'space-between',
+     padding: 12,
+     borderRadius: 8,
+     backgroundColor: '#fafafa',
+     marginBottom: 12,
+     shadowColor: '#000',
+     shadowOpacity: 0.1,
+     shadowRadius: 4,
+     elevation: 2,
+   },
+   itemTitle: {
+     fontSize: 16,
+     fontWeight: '500',
+   },
+   itemSubtitle: {
+     fontSize: 12,
+     color: '#999',
+     marginTop: 4,
+   },
+   list: {},
+   row: {
+     justifyContent: 'flex-start',
+     marginBottom: ITEM_MARGIN,
+   },
+   image: {
+     width: ITEM_SIZE,
+     height: ITEM_SIZE,
+     borderRadius: 8,
+     marginRight : ITEM_MARGIN,
+     backgroundColor: '#eee',
+   },
+   itemImage: {
+     width: 50,
+     height: 50,
+     borderRadius: 4,
+     backgroundColor: '#ddd',
+   },
+   textContainer:{
+     flexDirection:'column'
+   },
+   imageContainer: {},
+   loading: {
+     flex: 1,
+     alignItems: 'center',
+     justifyContent: 'center',
+   },
+   mapContainer: {
+     flex: 1,
+   },
+   map: {
+     flex: 1,
+   },
+   loadPostsButton: {
+     position: 'absolute',
+     top: 20,
+     alignSelf: 'center',
+     backgroundColor: '#fff',
+     paddingVertical: 10,
+     paddingHorizontal: 15,
+     borderRadius: 20,
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.25,
+     shadowRadius: 3.84,
+     elevation: 5,
+     flexDirection: 'row',
+     alignItems: 'center',
+   },
+   loadPostsButtonText: {
+     fontSize: 16,
+     fontWeight: 'bold',
+     color: '#007AFF',
+     marginLeft: 5,
+   },
+   errorContainer: {
+     position: 'absolute',
+     bottom: 20,
+     alignSelf: 'center',
+     backgroundColor: 'rgba(255, 0, 0, 0.8)',
+     paddingVertical: 8,
+     paddingHorizontal: 15,
+     borderRadius: 10,
+   },
+   errorText: {
+     color: '#fff',
+     fontSize: 14,
+     fontWeight: 'bold',
+   },
+   postsCountContainer: {
+     position: 'absolute',
+     bottom: 20,
+     alignSelf: 'center',
+     backgroundColor: 'rgba(255, 255, 255, 0.9)',
+     paddingVertical: 8,
+     paddingHorizontal: 15,
+     borderRadius: 10,
+     flexDirection: 'row',
+     alignItems: 'center',
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.15,
+     shadowRadius: 3,
+     elevation: 3,
+   },
+   postsCountText: {
+     color: '#555',
+     fontSize: 14,
+     marginLeft: 5,
+   },
+   customMarker: {
+     height: 18, // Slightly larger for the border
+     width: 18,  // Slightly larger for the border
+     borderRadius: 9, // Half of height/width for a perfect circle
+     backgroundColor: 'orange', // This will be the outer white circle/border
+     borderWidth: 2, // Width of the white border
+     borderColor: 'black', // Color of the border
+     alignItems: 'center',
+     justifyContent: 'center',
+   },
+   innerMarker: {
+     height: 12, // Inner orange circle size
+     width: 12,  // Inner orange circle size
+     borderRadius: 6, // Half of inner height/width for a perfect circle
+     backgroundColor: 'orange', // Orange fill color
+   },
+ });
