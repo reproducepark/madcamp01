@@ -188,7 +188,12 @@ export function TabTwoScreen() {
           // console.log(item.id),
           console.log(item.image_url),
           <TouchableOpacity onPress={() => handleItemPress(item.id)}>
-            <Image source={item.image_url} style={styles.image} />
+            {
+              item.image_url && (
+                < Image source={{ uri: item.image_url }} style={styles.image} />
+              )
+            }
+            
           </TouchableOpacity>
         )}
       />

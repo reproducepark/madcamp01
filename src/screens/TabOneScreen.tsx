@@ -126,16 +126,16 @@ export function TabOneScreen() {
   };
 
   const renderItem = ({ item }: { item: typeof initialData[0] }) => (
-    <TouchableOpacity onPress={() => handleItemPress(item.id)}>
-      <View style={styles.listItem}>
-        <View style={styles.textContainer}>
-          <Text style={styles.itemTitle}>아이템 제목: {item.title}</Text>
-          <Text style={styles.itemSubtitle}>아이템 설명: {item.description}</Text>
-        </View>
-        <View style={styles.imageContainer}>
-          <Image source={item.image} style={styles.itemImage} />
-        </View>
+    console.log(item),
+    <TouchableOpacity style={styles.postItem} onPress={() => handleItemPress(item.id)}>
+      <View style={[styles.itemContent, !item.image_url && styles.itemContentFullWidth]}>
+        <Text style={styles.itemTitle}>{item.title}</Text>
+        <Text style={styles.itemDescription} numberOfLines={1}>{item.nickname}</Text>
+        <Text style={styles.itemLocation}>{item.admin_dong}</Text>
       </View>
+      {item.image_url && (
+        <Image source={{ uri: item.image_url }} style={styles.itemImage} />
+      )}
     </TouchableOpacity>
   );
 
@@ -209,21 +209,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
   itemSubtitle: {
     fontSize: 12,
     color: '#999',
     marginTop: 4,
   },
-  itemImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 4,
-    backgroundColor: '#ddd',
-  },
+
   textContainer: {
     flexDirection: 'column',
     flex: 1,
@@ -251,4 +242,77 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: 'white',
   },
+  bottomSheetFlatList: {
+    backgroundColor: '#f9f9f9',
+  },
+  postsListContent: {
+    paddingBottom: 20,
+    flexGrow: 1,
+  },
+  listHeaderContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#f9f9f9',
+  },
+  listHeaderText: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  postItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    // paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#fff',
+  },
+  itemImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 8,
+    backgroundColor: '#eee',
+    marginLeft: 12,
+  },
+  itemContent: {
+    flex: 1,
+  },
+  itemContentFullWidth: {
+    marginRight: 0,
+  },
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  itemDescription: {
+    fontSize: 13,
+    color: '#555',
+    marginBottom: 4,
+  },
+  itemLocation: {
+    fontSize: 12,
+    color: '#999',
+  },
+  noPostsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  noPostsText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#555',
+    marginBottom: 5,
+  },
+  noPostsSubText: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+  },
 });
+
