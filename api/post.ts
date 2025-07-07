@@ -3,14 +3,16 @@
 import axios from 'axios';
 import { BASE_URL } from '@env';
 
-export interface PostPayload {
+export interface Post {
+  id: string;
   userId: string;
   title : string;
   content: string;
   lat: number;
   lon: number;
   adminDong: string;
-  imageUri?: string;
+  upperAdminDong: string;
+  image_url?: string;
 }
 
 export interface OnboardResponse {
@@ -23,7 +25,7 @@ export interface OnboardResponse {
 }
 
 export interface PostResponse {
-  id: string;
+  postId: string;
   user_id: string;
   title: string;
   content: string;
@@ -35,6 +37,24 @@ export interface PostResponse {
   lon: number; // Add lon to PostResponse
 }
 
+export interface NearByPostsUpperResponse {
+    message: string;
+    yourLocation: {lat:number, lon:number};
+    yourUpperAdminDong: string;
+    nearbyPosts: Post[];
+
+}
+
+export interface NearByPostsResponse {
+    admin_dong: string,
+    created_at: string,
+    id: number, 
+    image_url: string | null;
+    nickname: string,
+    title: string,
+    upper_admin_dong: string,
+}
+
 export interface Viewport {
   centerLat: number;
   centerLon: number;
@@ -44,8 +64,9 @@ export interface Viewport {
   deltaRatioLon?: number;
 }
 
-export async function createPost(post: PostPayload) {
-    const { userId, title, content, lat, lon, adminDong, imageUri } = post;
+export async function createPost(post: Post) {
+    // const { userId, title, content, lat, lon, adminDong, upperAdminDong, imageUri } = post;
+    const { userId, title, content, lat, lon, image_url: imageUri } = post;
     const formData = new FormData();
 
     console.log("포스트 요청 :", post);
@@ -56,7 +77,8 @@ export async function createPost(post: PostPayload) {
     formData.append('content', content);
     formData.append('lat', String(lat));
     formData.append('lon', String(lon));
-    formData.append('adminDong', adminDong);
+    // formData.append('adminDong', adminDong);
+    // formData.append('userAdminDong', upperAdminDong);
 
     if (imageUri) {
         formData.append('image',{
@@ -73,7 +95,7 @@ export async function createPost(post: PostPayload) {
 
     if (!postRes.ok) {
         const text = await postRes.text();
-        throw new Error(`HTTP ${postRes.status}: ${text}`);
+        throw new Error(`HTTP ${postRes.status}: ${text} ${postRes.statusText}`);
     }
 
     const data=await postRes.json()
@@ -130,4 +152,128 @@ export async function getPostsInViewport(viewport: Viewport): Promise<PostRespon
   console.log("Posts in viewport response:", data);
 
   return data.postsInViewport as PostResponse[];
+}
+
+export async function getNearbyPosts(lat: number,lon: number) {
+  
+    console.log('Fetching nearby posts for:', { lat, lon });
+
+    const url = `${BASE_URL}/posts/nearby`
+        + `?currentLat=${encodeURIComponent(lat.toString())}`
+        + `&currentLon=${encodeURIComponent(lon.toString())}`;
+
+        const userId = await AsyncStorage.getItem('userID');
+        // console.log('DEBUG ▶ userID:', userId);
+        if (!userId) {
+        throw new Error('로그인된 유저ID가 없습니다. 먼저 온보딩을 진행하세요.');
+        }
+
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    const { nearbyPosts } = data;
+    if (nearbyPosts.length > 0) {
+        console.log(`첫 번째 근처 글 제목: ${nearbyPosts[0].title}`);
+    } else {
+        console.log('근처에 게시물이 없습니다.');
+    }
+
+    return data;
+}
+
+// export async function getNearbyPostsUpper(lat: number,lon: number) {
+  
+//     console.log('Fetching nearby posts for:', { lat, lon });
+
+//     const url = `${BASE_URL}/posts/nearbyupper`
+//         + `?currentLat=${encodeURIComponent(lat.toString())}`
+//         + `&currentLon=${encodeURIComponent(lon.toString())}`;
+
+//         const userId = await AsyncStorage.getItem('userID');
+//         // console.log('DEBUG ▶ userID:', userId);
+//         if (!userId) {
+//         throw new Error('로그인된 유저ID가 없습니다. 먼저 온보딩을 진행하세요.');
+//         }
+
+//     const response = await fetch(url, {
+//         method: 'GET',
+//         headers: { Accept: 'application/json' },
+//     });
+//     // console.log('상위 행정동 근처 글 조회 응답:', JSON.stringify(response.data, null, 2));
+
+//     if (!response.ok) {
+//         const errorText = await response.text();
+//         throw new Error(`HTTP ${response.status}: ${errorText}`);
+//     }
+
+//     const data = await response.json();
+
+//     const { nearbyPostsUpper, upperAdminDong } = data;
+//     if (nearbyPostsUpper.length > 0) {
+//         console.log(`첫 번째 근처 글 제목: ${nearbyPostsUpper[0].title}`);
+//     } else {
+//         console.log('근처에 게시물이 없습니다.');
+//     }
+
+//     return data;
+// }
+
+export async function getNearbyPostsUpper(
+  lat: number,
+  lon: number
+): Promise<NearByPostsUpperResponse> {
+  console.log('Fetching nearby-upper posts for:', { lat, lon });
+
+  // 1) 유저ID
+  const userId = await AsyncStorage.getItem('userID');
+  if (!userId) {
+    throw new Error('로그인된 유저ID가 없습니다. 먼저 온보딩을 진행하세요.');
+  }
+
+  const url =
+    `${BASE_URL}/posts/nearbyupper` +
+    `?currentLat=${encodeURIComponent(lat.toString())}` +
+    `&currentLon=${encodeURIComponent(lon.toString())}`;
+
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`HTTP ${res.status}: ${errText}`);
+  }
+
+  // 5) 파싱
+  const data = (await res.json()) as Partial<NearByPostsUpperResponse>;
+
+//   6) 안전장치: nearbyPosts가 배열이 아니면 빈 배열로
+  if (!Array.isArray(data.nearbyPosts)) {
+    console.warn(
+      'getNearbyPostsUpper: expected data.nearbyPosts to be an array, got:',
+      data.nearbyPosts
+    );
+    data.nearbyPosts = [];
+  }
+
+  // 7) 로그
+  if (data.nearbyPosts.length>0) {
+    console.log(`첫 번째 상위 행정동 근처 글 제목: ${data.nearbyPosts[0].title}`);
+  } else {
+    // data.nearbyPosts = [];
+    console.log('상위 행정동 근처에 게시물이 없습니다.');
+  }
+
+  // 8) 타입 단언 후 반환
+  return data as NearByPostsUpperResponse;
 }

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import NicknameModal from '../components/NicknameModal'; // 닉네임 모달 임포트
-import { UserPayload,OnboardResponse,createUser } from '../../api/user';
+import { User,OnboardResponse,createUser } from '../../api/user';
 import { Ionicons } from '@expo/vector-icons'; // Ionicons 임포트 (드롭다운 아이콘용)
 import * as Location from 'expo-location';
 

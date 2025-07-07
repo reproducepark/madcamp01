@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { BASE_URL } from '@env';
 
-export interface UserPayload {
+export interface User {
     nickname: string;
     lat: number;
     lon: number;
@@ -25,14 +25,14 @@ export interface OnboardResponse {
 //   return res.data;
 // }
 
-export async function createUser(payload:UserPayload){
+export async function createUser(user:User){
     let userId=null;
     let adminDong=null;
 
     try {
-        console.log('온보딩 요청:',payload);
+        console.log('온보딩 요청:',user);
         console.log('온보딩 요청 URL:',`${BASE_URL}/auth/onboard`);
-        const onboardRes= await axios.post(`${BASE_URL}/auth/onboard`, payload);
+        const onboardRes= await axios.post(`${BASE_URL}/auth/onboard`, user);
         console.log('온보딩 응담:',onboardRes.data);
 
         return onboardRes.data;
