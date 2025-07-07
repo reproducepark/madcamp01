@@ -6,13 +6,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { TabOneNavigator } from './navigation/TabOneStack'; // TabOne Navigator 임포트
-import { TabTwoNavigator } from './navigation/TabTwoStack'; // <--- NEW IMPORT: TabTwo Navigator 임포트
-
-import { TabThreeScreen } from './screens/TabThreeScreen';
+import { TabOneNavigator } from './navigation/TabOneStack';
+import { TabTwoNavigator } from './navigation/TabTwoStack';
+import { TabThreeNavigator } from './navigation/TabThreeStack'; // <--- NEW: TabThree 내비게이터 임포트
 import OnboardingScreen from './screens/OnboardingScreen';
 import { OnboardResponse } from '../api/post';
-
 declare global {
   // eslint-disable-next-line no-var
   var AsyncStorage: any;
@@ -143,13 +141,13 @@ export default function App() {
         />
         <Tab.Screen
           name="갤러리"
-          component={TabTwoNavigator} // <--- CHANGED: TabTwoNavigator를 사용
-          options={{ title: '갤러리', headerShown: false }} // <--- 헤더 숨기기
+          component={TabTwoNavigator}
+          options={{ title: '갤러리', headerShown: false }}
         />
         <Tab.Screen
           name="지도"
-          component={TabThreeScreen}
-          options={{ title: '지도' }}
+          component={TabThreeNavigator} // <--- CHANGED: TabThreeNavigator 사용
+          options={{ title: '지도', headerShown: false }} // <--- CHANGED: 스택 내에서 헤더를 관리하므로 false로 설정
         />
       </Tab.Navigator>
     </NavigationContainer>
