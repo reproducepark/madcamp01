@@ -343,3 +343,26 @@ export async function deletePost(deletePayload: DeletePost): Promise<DeletePostR
   console.log("게시글 삭제 응답:", data);
   return data;
 }
+
+/**
+ * 특정 userId의 게시글 목록을 가져옵니다.
+ * @param userId 게시글을 조회할 사용자의 ID
+ * @returns 특정 사용자의 게시글 목록을 포함하는 Promise
+ * @throws HTTP 요청 실패 시 에러
+ */
+export async function getPostsByUserId(userId: string): Promise<PostsbyUserIdResponse[]> {
+  console.log("Fetching posts for userId:", userId);
+  console.log("Request URL:", `${BASE_URL}/posts/user/${userId}`);
+
+  const response = await fetch(`${BASE_URL}/posts/user/${userId}`);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log("Posts by user ID response:", data);
+
+  return data.posts;
+}
