@@ -1,6 +1,6 @@
 // components/PostDetailScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, Dimensions, TouchableOpacity, Modal } from 'react-native';
 import { getPostById, PostByIdResponse } from '../../api/post'; // Adjust path if needed
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -43,6 +43,8 @@ export function PostDetailScreen({ route }: PostDetailScreenProps) {
   const [post, setPost] = useState<PostByIdResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isImageModalVisible, setIsImageModalVisible] = useState<boolean>(false);
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPostDetails = async () => {
@@ -60,6 +62,16 @@ export function PostDetailScreen({ route }: PostDetailScreenProps) {
 
     fetchPostDetails();
   }, [postId]);
+
+  const handleImagePress = (uri: string) => {
+    setSelectedImageUri(uri);
+    setIsImageModalVisible(true);
+  };
+
+  const handleCloseImageModal = () => {
+    setIsImageModalVisible(false);
+    setSelectedImageUri(null);
+  };
 
   if (loading) {
     return (
@@ -89,7 +101,11 @@ export function PostDetailScreen({ route }: PostDetailScreenProps) {
   return (
     <ScrollView style={styles.container}>
       {post.image_url && (
-        <Image source={{ uri: post.image_url }} style={styles.postImage} />
+        
+        <TouchableOpacity onPress={() => handleImagePress(post.image_url!)} activeOpacity={0.8}>
+          <Image source={{ uri: post.image_url }} style={styles.postImage} />
+        </TouchableOpacity>
+        // <Image source={{ uri: post.image_url }} style={styles.postImage} />
       )}
       <View style={styles.contentContainer}>
           <View style={styles.titleAndNicknameContainer}>
@@ -110,6 +126,26 @@ export function PostDetailScreen({ route }: PostDetailScreenProps) {
           <Text style={styles.content}>{post.content}</Text>
           
         </View>
+
+        <Modal
+          visible={isImageModalVisible}
+          transparent={true}
+          onRequestClose={handleCloseImageModal}
+          animationType='fade'
+        >
+          <View style={styles.fullScreenModalContainer}>
+            <TouchableOpacity style={styles.closeButton} onPress={handleCloseImageModal}>
+              <Ionicons name="close-circle" size={40} color="white" />
+            </TouchableOpacity>
+            {selectedImageUri && (
+              <Image
+                source={{ uri: selectedImageUri }}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+        </Modal>
         
 
       {/* </View> */}
@@ -208,5 +244,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom:10,
 
-  }
+  },
+  fullScreenModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImage: {
+    width: width,
+    height: height,
+    resizeMode: 'contain',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    padding: 10,
+  },
 });
