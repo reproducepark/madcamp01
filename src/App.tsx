@@ -2,8 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
-import { Text, View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import { Image, Text, View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location'; // expo-location 임포트 추가
 
@@ -23,9 +22,9 @@ if (__DEV__) {
 
 // Bottom Tab Navigator의 파라미터 목록을 정의합니다.
 export type RootTabParamList = {
-  리스트: undefined; // 이 탭은 TabOneNavigator를 렌더링
-  갤러리: undefined; // <--- CHANGED: 이 탭은 TabTwoNavigator를 렌더링
-  지도: undefined;
+  홈: undefined; // 이 탭은 TabOneNavigator를 렌더링
+  더보기: undefined; // <--- CHANGED: 이 탭은 TabTwoNavigator를 렌더링
+  둘러보기: undefined;
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -115,25 +114,33 @@ export default function App() {
       <Tab.Navigator
         screenOptions={({ route }) => ({
           tabBarIcon: ({ focused, color, size }) => {
-            let iconName: keyof typeof Ionicons.glyphMap;
+             let iconSource;
 
             switch (route.name) {
-              case '리스트':
-                iconName = focused ? 'people' : 'people-outline';
+              case '홈':
+                iconSource = focused
+                  ? require('../assets/icons/home.png') // 활성화된 아이콘
+                  : require('../assets/icons/home_u.png'); // 비활성화된 아이콘
                 break;
-              case '갤러리':
-                iconName = focused ? 'images' : 'images-outline';
+              case '더보기':
+                iconSource = focused
+                  ? require('../assets/icons/mag.png')
+                  : require('../assets/icons/mag_u.png');
                 break;
-              case '지도':
-                iconName = focused ? 'map' : 'map-outline';
+              case '둘러보기':
+                iconSource = focused
+                  ? require('../assets/icons/maps.png')
+                  : require('../assets/icons/maps_u.png');
                 break;
-              default:
-                iconName = 'ellipse';
             }
-            return <Ionicons name={iconName} size={size} color={color} />;
+            return (
+            <Image
+              source={iconSource}
+              style={{ width: size, height: size, tintColor: color }} // 사이즈와 색상 적용
+            />
+          );
           },
-          tabBarActiveTintColor: 'tomato',
-          tabBarInactiveTintColor: 'gray',
+          tabBarActiveTintColor: 'black',
           tabBarStyle: {
             backgroundColor: '#f8f8f8',
             borderTopWidth: 0,
@@ -141,7 +148,7 @@ export default function App() {
             shadowOpacity: 0.1,
             shadowRadius: 5,
             shadowOffset: { width: 0, height: -3 },
-            height: 60,
+            height: 75,
             paddingBottom: 5,
           },
           tabBarLabelStyle: {
@@ -157,19 +164,19 @@ export default function App() {
         })}
       >
         <Tab.Screen
-          name="리스트"
+          name="홈"
           component={TabOneNavigator}
-          options={{ title: '리스트', headerShown: false }}
+          options={{ title: '홈', headerShown: false }}
         />
         <Tab.Screen
-          name="갤러리"
+          name="더보기"
           component={TabTwoNavigator}
-          options={{ title: '갤러리', headerShown: false }}
+          options={{ title: '더보기', headerShown: false }}
         />
         <Tab.Screen
-          name="지도"
+          name="둘러보기"
           component={TabThreeNavigator} // <--- CHANGED: TabThreeNavigator 사용
-          options={{ title: '지도', headerShown: false }} // <--- CHANGED: 스택 내에서 헤더를 관리하므로 false로 설정
+          options={{ title: '둘러보기', headerShown: false }} // <--- CHANGED: 스택 내에서 헤더를 관리하므로 false로 설정
         />
       </Tab.Navigator>
     </NavigationContainer>

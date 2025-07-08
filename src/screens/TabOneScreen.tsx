@@ -1,32 +1,70 @@
-// screens/TabOneScreen.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { Text, View, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native'; // Alert import 추가
+import { Text, View, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { NearByPostsResponse, createPost, getNearbyPosts } from '../../api/post';
+import { updateUserLocation } from '../../api/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native';
+import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
 
 // Import the specific parameter list for TabOne's stack
 import { TabOneStackParamList } from '../navigation/TabOneStack';
 
 // WriteModal 컴포넌트 임포트
 import { WriteModal } from '../components/WriteModal';
+// CustomAlertModal 임포트 추가
+import { CustomAlertModal } from '../components/CustomAlertModal';
+// CustomConfirmModal 임포트 추가 (handleLocationRefreshConfirmation에서도 사용되므로)
+import { CustomConfirmModal } from '../components/CustomConfirmModal';
+
 
 export function TabOneScreen() {
   const navigation = useNavigation<NavigationProp<TabOneStackParamList>>();
   const [modalVisible, setModalVisible] = useState(false);
   const [listData, setListData] = useState<NearByPostsResponse[]>([]);
-  const [loading, setLoading] = useState(true); // 로딩 상태 추가
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isLocationRefreshing, setIsLocationRefreshing] = useState(false);
+  
+  // CustomConfirmModal 가시성 상태 (위치 새로고침 확인)
+  const [isLocationConfirmModalVisible, setIsLocationConfirmModalVisible] = useState(false); 
+  // CustomAlertModal 가시성 상태 (위치 새로고침 완료)
+  const [isLocationUpdateAlertVisible, setIsLocationUpdateAlertVisible] = useState(false);
+  const [locationUpdateMessage, setLocationUpdateMessage] = useState(''); // 위치 업데이트 메시지 상태
+
+  const [currentAdminDong, setCurrentAdminDong] = useState<string | null>(null);
+
+  useEffect(()=>{
+    const loadAdminDong = async () => {
+      try {
+        const storedAdminDong = await AsyncStorage.getItem('userAdminDong');
+        console.log('현재위치',storedAdminDong);
+        if (storedAdminDong) {
+          const parts = storedAdminDong.split(' ');
+          if (parts.length >= 2) {
+            setCurrentAdminDong(parts.slice(1).join(' '));
+          } else {
+            setCurrentAdminDong(storedAdminDong);
+          }
+        } else {
+          setCurrentAdminDong(null);
+        }
+      } catch (e) {
+        console.error('AsyncStorage에서 useradminDong 불러오기 실패:',e);
+        setCurrentAdminDong('정보없음')
+      }
+    }
+    loadAdminDong();
+  },[]);
 
   const fetchPosts = useCallback(async () => {
     try {
-      setLoading(true); // 데이터 가져오기 시작 시 로딩 설정
+      setLoading(true);
       const rawLat = await AsyncStorage.getItem('userLat');
       const rawLon = await AsyncStorage.getItem('userLon');
 
       if (!rawLat || !rawLon) {
         console.error('위치 정보 없음: 먼저 위치를 받아 와야 합니다.');
-        // Alert.alert('오류', '위치 정보를 가져올 수 없습니다. 설정에서 위치 권한을 확인해주세요.');
         return;
       }
       const lat = Number(rawLat);
@@ -39,19 +77,109 @@ export function TabOneScreen() {
       console.error('근처 글 조회 실패:', e);
       Alert.alert('오류', '글을 불러오는 데 실패했습니다: ' + e.message);
     } finally {
-      setLoading(false); // 데이터 가져오기 완료 시 로딩 해제
+      setLoading(false);
     }
   },[]);
 
-  useEffect(() => {
-    fetchPosts();
+  // useFocusEffect 훅을 사용하여 화면이 포커스될 때마다 fetchPosts 실행
+  useFocusEffect(
+    useCallback(() => {
+      fetchPosts();
+      return () => {
+        // 화면이 블러(blur)될 때 필요한 클린업 작업 (선택 사항)
+      };
+    }, [fetchPosts])
+  );
+
+  const executeLocationRefresh = useCallback(async () => {
+    setIsLocationRefreshing(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          '위치 권한 필요',
+          '현재 위치를 새로고침하려면 위치 권한이 필요합니다. 앱 설정에서 권한을 허용해주세요.'
+        );
+        return;
+      }
+
+      const { coords } = await Location.getCurrentPositionAsync({});
+      const userID = await AsyncStorage.getItem('userID');
+
+      if (!userID) {
+        Alert.alert('오류', '사용자 ID를 찾을 수 없습니다. 로그인이 필요합니다.');
+        return;
+      }
+
+      const updateRes = await updateUserLocation({ userId: userID, lat: coords.latitude, lon: coords.longitude });
+
+      const parts = updateRes.adminDong.split(' ');
+      if (parts.length >= 2) {
+        setCurrentAdminDong(parts.slice(1).join(' '));
+      } else {
+        setCurrentAdminDong(updateRes.adminDong);
+      }
+      await AsyncStorage.setItem('userLat', String(coords.latitude));
+      await AsyncStorage.setItem('userLon', String(coords.longitude));
+      await AsyncStorage.setItem('userAdminDong', updateRes.adminDong);
+
+      // CustomAlertModal 사용
+      setLocationUpdateMessage(`위치 정보가 '${updateRes.adminDong}'으로 업데이트 되었습니다.`);
+      setIsLocationUpdateAlertVisible(true);
+      // Alert.alert('알림', `위치 정보가 '${updateRes.adminDong}'으로 업데이트되었습니다.`); // 기존 Alert 제거
+
+      fetchPosts();
+    } catch (e: any) {
+      console.error('위치 새로고침 오류:', e);
+      Alert.alert('오류', '위치 정보를 새로고침하는 데 실패했습니다: ' + e.message);
+    } finally {
+      setIsLocationRefreshing(false);
+    }
   }, [fetchPosts]);
+
+  // handleLocationRefreshConfirmation에서 CustomConfirmModal 사용으로 변경
+  const handleLocationRefreshConfirmation = useCallback(() => {
+    setIsLocationConfirmModalVisible(true);
+  }, []);
+
+  const handleMyPagePress = useCallback(() => {
+    navigation.navigate('MyPage');
+  }, [navigation]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchPosts();
     setRefreshing(false);
   }, [fetchPosts]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={styles.headerRightContainer}>
+          {/* 상단 헤더의 새로고침 버튼은 기존 Alert 대신 즉시 실행되도록 유지 (또는 CustomConfirmModal 사용 고려) */}
+          <TouchableOpacity
+            onPress={executeLocationRefresh} // 이 버튼은 바로 새로고침 실행
+            style={styles.headerButton}
+            disabled={isLocationRefreshing}
+          >
+            {isLocationRefreshing ? (
+              <ActivityIndicator size="small" color="#f4511e" />
+            ) : (
+              <Ionicons name="refresh" size={24} color="#f4511e" />
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+              onPress={handleMyPagePress}
+              style={styles.headerButton}
+          >
+            <Ionicons name="person-circle" size={24} color="#f4511e" />
+          </TouchableOpacity>
+
+        </View>
+        
+      ),
+    });
+  }, [navigation, executeLocationRefresh, isLocationRefreshing]);
 
   const handleAddItem = async (title: string, description: string, imageUri?: string) => {
     try {
@@ -72,7 +200,7 @@ export function TabOneScreen() {
         content: description,
         lat: Number(userLat),
         lon: Number(userLon),
-        image_uri: imageUri, // 이미지 URI가 있을 경우에만 포함
+        image_uri: imageUri,
       });
       console.log("게시물 성공적으로 생성:", postRes);
 
@@ -105,9 +233,37 @@ export function TabOneScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <Text style={styles.text}>여기는 탭 1: 리스트</Text>
-        <Text style={styles.subText}>연락처, 상품, 맛집 리스트 등을 보여줄 페이지입니다.</Text>
+      <View style={styles.navContainer}>
+
+        <View style={styles.locationInfoContainer}>
+          <Text style={styles.textDong}>
+          {currentAdminDong || '위치 정보 로딩 중...'}
+        
+          </Text>
+          <TouchableOpacity
+              onPress={handleLocationRefreshConfirmation} // CustomConfirmModal을 띄우도록 변경
+              style={styles.inlineRefreshButton}
+              disabled={isLocationRefreshing}
+            >
+              {isLocationRefreshing ? (
+                <ActivityIndicator size="small" color="#f4511e" />
+              ) : (
+                <Ionicons name="locate-outline" size={25} color="#f4511e" />
+              )}
+            </TouchableOpacity>
+        </View>
+
+        
+        
+        <TouchableOpacity
+              onPress={handleMyPagePress}
+              style={styles.headerButton}
+          >
+            <Ionicons name="person-circle" size={35} color="#f4511e" />
+        </TouchableOpacity>
+
+      </View>
+      <View style={styles.container}>        
 
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -144,6 +300,29 @@ export function TabOneScreen() {
           onClose={() => setModalVisible(false)}
           onSave={handleAddItem}
         />
+
+        {/* 위치 새로고침 확인을 위한 CustomConfirmModal */}
+        <CustomConfirmModal
+          isVisible={isLocationConfirmModalVisible}
+          title="위치 정보 새로고침"
+          message="현재 위치 정보를 새로고침하시겠습니까?"
+          onCancel={() => setIsLocationConfirmModalVisible(false)}
+          onConfirm={() => {
+            setIsLocationConfirmModalVisible(false); // 확인 후 모달 닫기
+            executeLocationRefresh(); // 위치 새로고침 실행
+          }}
+          confirmText="확인"
+          cancelText="취소"
+        />
+
+        {/* 위치 업데이트 완료를 위한 CustomAlertModal */}
+        <CustomAlertModal
+          isVisible={isLocationUpdateAlertVisible}
+          title="위치 업데이트 완료"
+          message={locationUpdateMessage} // 동적으로 메시지 전달
+          onClose={() => setIsLocationUpdateAlertVisible(false)} // 모달 닫기
+          confirmText="확인"
+        />
       </View>
     </SafeAreaView>
   );
@@ -154,11 +333,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  navContainer: {
+    flexDirection:'row',
+    justifyContent:'space-between',
+    padding: 20, 
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',
     justifyContent: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
+  },
+  textDong: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginLeft: 10,
+    textAlign: 'left',
   },
   text: {
     fontSize: 24,
@@ -177,7 +367,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     flexGrow: 1,
   },
-  listItem: { // 이 스타일은 현재 코드에서 사용되지 않는 것 같습니다.
+  listItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -190,16 +380,16 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  itemSubtitle: { // 이 스타일은 현재 코드에서 사용되지 않는 것 같습니다.
+  itemSubtitle: {
     fontSize: 12,
     color: '#999',
     marginTop: 4,
   },
-  textContainer: { // 이 스타일은 현재 코드에서 사용되지 않는 것 같습니다.
+  textContainer: {
     flexDirection: 'column',
     flex: 1,
   },
-  imageContainer: { // 이 스타일은 현재 코드에서 사용되지 않는 것 같습니다.
+  imageContainer: {
     marginLeft: 10,
   },
   fab: {
@@ -221,25 +411,6 @@ const styles = StyleSheet.create({
   fabText: {
     fontSize: 24,
     color: 'white',
-  },
-  bottomSheetFlatList: { // 이 스타일은 현재 코드에서 사용되지 않는 것 같습니다.
-    backgroundColor: '#f9f9f9',
-  },
-  postsListContent: { // 이 스타일은 현재 코드에서 사용되지 않는 것 같습니다.
-    paddingBottom: 20,
-    flexGrow: 1,
-  },
-  listHeaderContainer: { // 이 스타일은 현재 코드에서 사용되지 않는 것 같습니다.
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e0e0e0',
-    backgroundColor: '#f9f9f9',
-  },
-  listHeaderText: { // 이 스타일은 현재 코드에서 사용되지 않는 것 같습니다.
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#333',
   },
   postItem: {
     flexDirection: 'row',
@@ -307,4 +478,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#555',
   },
+  adminDongText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#f4511e',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  headerButton: {
+    marginRight: 15,
+    padding: 5,
+  },
+  inlineRefreshButton: {
+    paddingLeft:5,
+  },
+  headerRightContainer: {
+    flexDirection: 'row',
+    marginRight: 5,
+  },
+  locationInfoContainer:{
+    flexDirection:'row',
+    alignItems:'center',
+  }
 });

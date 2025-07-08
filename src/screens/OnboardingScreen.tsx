@@ -22,19 +22,15 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onFinishOnboarding 
   // async로 수정
   const handleNicknameSubmit = async (nickname: string) => {
     setModalVisible(false); // 모달 닫기
-    // onFinishOnboarding(nickname); // App.tsx로 닉네임을 전달하며 온보딩 완료 처리
     const { coords } = await Location.getCurrentPositionAsync({});
 
     try {
-      // 1) 서버에 유저 온보딩 요청
       const onBoardRes = await createUser({
         nickname,
         lat: coords.latitude,
         lon: coords.longitude
     });
 
-    // 2) 성공하면 App.tsx로 userId 넘기기
-    // onFinishOnboarding(onBoardRes.userId);
     onFinishOnboarding(onBoardRes);
     } catch (e) {
       console.error('온보딩 API 에러', e);

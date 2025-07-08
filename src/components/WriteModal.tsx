@@ -1,5 +1,4 @@
-// components/WriteModal.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -9,54 +8,96 @@ import {
   SafeAreaView,
   StyleSheet,
   Platform,
-  Alert,
+  // Alert, // ✨ Alert는 더 이상 필요 없으니 주석 처리하거나 제거합니다.
   TouchableWithoutFeedback,
   Keyboard,
   Image
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator'; // ImageManipulator 임포트
+import * as ImageManipulator from 'expo-image-manipulator';
+import { CustomAlertModal } from './CustomAlertModal'; // ✨ CustomAlertModal 임포트
 
 interface WriteModalProps {
   visible: boolean;
   onClose: () => void;
-  onSave: (title: string, description: string, imageUri?: string) => void;
+  onSave: (title: string, description: string, imageUri?: string, imageDeleteFlag?: boolean, imageUpdateFlag?: boolean) => void;
+  initialTitle?: string;
+  initialDescription?: string;
+  initialImageUri?: string;
 }
 
-export function WriteModal({ visible, onClose, onSave }: WriteModalProps) {
+export function WriteModal({ visible, onClose, onSave, initialTitle, initialDescription, initialImageUri }: WriteModalProps) {
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
-  const [imageUri, setImageUri] = useState<string|undefined>(undefined);
+  const [imageUri, setImageUri] = useState<string | undefined>(undefined);
+  const [originalImageUri, setOriginalImageUri] = useState<string | undefined>(undefined);
+
+  // ✨ CustomAlertModal 관련 상태 추가
+  const [isAlertVisible, setIsAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
+  // visible이 true가 될 때마다 초기값으로 상태를 설정
+  useEffect(() => {
+    if (visible) {
+      setNewTitle(initialTitle || '');
+      setNewDescription(initialDescription || '');
+      setImageUri(initialImageUri || undefined);
+      setOriginalImageUri(initialImageUri || undefined);
+      // 모달이 열릴 때 알림 상태 초기화
+      setIsAlertVisible(false);
+      setAlertTitle('');
+      setAlertMessage('');
+    }
+  }, [visible, initialTitle, initialDescription, initialImageUri]);
+
+  // ✨ CustomAlertModal을 띄우는 헬퍼 함수
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsAlertVisible(true);
+  };
 
   const handleSave = () => {
     if (newTitle.trim() === '' || newDescription.trim() === '') {
-      Alert.alert('알림', '제목과 내용을 모두 입력해주세요.');
+      showAlert('알림', '제목과 내용을 모두 입력해야 해요.'); // ✨ CustomAlertModal 사용
       return;
     }
-    onSave(newTitle, newDescription, imageUri);
-    setNewTitle('');
-    setNewDescription('');
-    setImageUri(undefined);
+
+    let image_url_delete_flag = false;
+    let image_url_update_flag = false;
+
+    if (originalImageUri && !imageUri) {
+      image_url_delete_flag = true;
+    } else if (!originalImageUri && imageUri) {
+      image_url_update_flag = true;
+    } else if (originalImageUri && imageUri && originalImageUri !== imageUri) {
+      image_url_update_flag = true;
+    }
+
+    onSave(newTitle, newDescription, imageUri, image_url_delete_flag, image_url_update_flag);
   };
 
   const handleCancel = () => {
     setNewTitle('');
     setNewDescription('');
+    setImageUri(undefined);
+    setOriginalImageUri(undefined);
     onClose();
   };
 
   const handleAttachPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-        Alert.alert(
+        showAlert(
         '권한 필요',
         '사진을 선택하려면 미디어 라이브러리 접근 권한이 필요합니다.'
-        );
+        ); // ✨ CustomAlertModal 사용
         return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ ImagePicker.MediaTypeOptions 사용
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 1,
     });
 
@@ -64,31 +105,26 @@ export function WriteModal({ visible, onClose, onSave }: WriteModalProps) {
         const pickedImageUri = result.assets[0].uri;
 
         try {
-            // 이미지 압축
             const manipResult = await ImageManipulator.manipulateAsync(
               pickedImageUri,
-              [{ resize: { width: 1200 } }], // 예시: 가로 1200px로 리사이즈
-              { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // 압축률 70%, JPEG 형식
+              [{ resize: { width: 1200 } }],
+              { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
             );
             console.log('압축된 이미지 URI:', manipResult.uri);
-            Alert.alert('사진 첨부', `사진이 압축 및 선택되었습니다: ${manipResult.uri.substring(0, 30)}...`);
+            // ✨ CustomAlertModal 사용
+            showAlert('사진 첨부', `사진이 압축 및 선택되었습니다: ${manipResult.uri.substring(0, 30)}...`);
             setImageUri(manipResult.uri);
         } catch (error) {
             console.error("이미지 압축 중 오류 발생:", error);
-            Alert.alert('오류', '이미지 압축에 실패했습니다.');
-            setImageUri(pickedImageUri); // 압축 실패 시 원본 URI 사용
+            showAlert('오류', '이미지 압축에 실패했습니다.'); // ✨ CustomAlertModal 사용
+            setImageUri(pickedImageUri);
         }
-    } else {
-        Alert.alert('알림', '사진 선택이 취소되었습니다.');
     }
   };
 
-  // 👈 이미지 삭제(첨부 취소) 함수
   const handleDeleteImage = () => {
-    setImageUri(undefined); // imageUri를 undefined로 설정하여 이미지 삭제
-    Alert.alert('알림', '사진 첨부가 취소되었습니다.');
+    setImageUri(undefined);
   };
-
 
   return (
     <Modal
@@ -144,6 +180,14 @@ export function WriteModal({ visible, onClose, onSave }: WriteModalProps) {
           </View>
         </SafeAreaView>
       </TouchableWithoutFeedback>
+
+      {/* ✨ CustomAlertModal 추가 */}
+      <CustomAlertModal
+        isVisible={isAlertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setIsAlertVisible(false)} // 모달 닫기
+      />
     </Modal>
   );
 }
@@ -221,22 +265,22 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   imagePreviewContainer: {
-    position: 'relative', // 자식 요소인 X 버튼을 absolute로 배치하기 위해 relative 설정
+    position: 'relative',
     alignSelf: 'flex-start',
     marginTop: 10,
   },
-  deleteImageButton: { // X 버튼 스타일
+  deleteImageButton: {
     position: 'absolute',
     top: 0,
     right: -10,
-    backgroundColor: 'rgba(0,0,0,0.6)', // 반투명 검은색 배경
-    borderRadius: 10, // 원형 버튼
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 10,
     width: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  deleteImageButtonText: { // X 버튼 텍스트 스타일
+  deleteImageButtonText: {
     color: 'white',
     fontSize: 12,
     fontWeight: 'bold',
