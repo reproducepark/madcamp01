@@ -47,7 +47,7 @@ const NicknameModal: React.FC<NicknameModalProps> = ({ isVisible, onClose, onSub
         setNickname(''); // 제출 후 입력 필드 초기화
       } else {
         // 닉네임 중복 또는 사용 불가능
-        Alert.alert('닉네임 오류', response.message || '이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해주세요.');
+        Alert.alert('닉네임 오류', '이미 사용 중인 닉네임입니다.');
         // 닉네임 입력 필드를 비우지 않고 사용자가 다시 입력할 수 있도록 유지
       }
     } catch (error) {
