@@ -1,10 +1,10 @@
 // screens/TabOneScreen.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { Text, View, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native'; // Alert import 추가
+import { Text, View, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { NearByPostsResponse, createPost, getNearbyPosts } from '../../api/post';
 import { updateUserLocation } from '../../api/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native'; // useFocusEffect 임포트 추가
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,28 +18,23 @@ export function TabOneScreen() {
   const navigation = useNavigation<NavigationProp<TabOneStackParamList>>();
   const [modalVisible, setModalVisible] = useState(false);
   const [listData, setListData] = useState<NearByPostsResponse[]>([]);
-  const [loading, setLoading] = useState(true); // 로딩 상태 추가
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [isLocationRefreshing, setIsLocationRefreshing] = useState(false); // 위치 새로고침 로딩 상태 추가
+  const [isLocationRefreshing, setIsLocationRefreshing] = useState(false);
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
 
-  const [currentAdminDong, setCurrentAdminDong] = useState<string | null>(null); // 👈 현재 사용자 동 상태 추가
-
-
+  const [currentAdminDong, setCurrentAdminDong] = useState<string | null>(null);
 
   useEffect(()=>{
     const loadAdminDong = async () => {
       try {
         const storedAdminDong = await AsyncStorage.getItem('userAdminDong');
         console.log('현재위치',storedAdminDong);
-        // console.log(await AsyncStorage.getItem('nickname'));
         if (storedAdminDong) {
           const parts = storedAdminDong.split(' ');
           if (parts.length >= 2) {
-            // 첫 번째 부분(시/도)을 제외하고 나머지를 다시 조인합니다.
             setCurrentAdminDong(parts.slice(1).join(' '));
           } else {
-            // 예상치 못한 형식일 경우 전체를 사용하거나 기본값 설정
             setCurrentAdminDong(storedAdminDong);
           }
         } else {
@@ -55,13 +50,12 @@ export function TabOneScreen() {
 
   const fetchPosts = useCallback(async () => {
     try {
-      setLoading(true); // 데이터 가져오기 시작 시 로딩 설정
+      setLoading(true);
       const rawLat = await AsyncStorage.getItem('userLat');
       const rawLon = await AsyncStorage.getItem('userLon');
 
       if (!rawLat || !rawLon) {
         console.error('위치 정보 없음: 먼저 위치를 받아 와야 합니다.');
-        // Alert.alert('오류', '위치 정보를 가져올 수 없습니다. 설정에서 위치 권한을 확인해주세요.');
         return;
       }
       const lat = Number(rawLat);
@@ -74,15 +68,23 @@ export function TabOneScreen() {
       console.error('근처 글 조회 실패:', e);
       Alert.alert('오류', '글을 불러오는 데 실패했습니다: ' + e.message);
     } finally {
-      setLoading(false); // 데이터 가져오기 완료 시 로딩 해제
+      setLoading(false);
     }
   },[]);
 
-  // 위치 새로고침 함수 추가
+  // useFocusEffect 훅을 사용하여 화면이 포커스될 때마다 fetchPosts 실행
+  useFocusEffect(
+    useCallback(() => {
+      fetchPosts();
+      return () => {
+        // 화면이 블러(blur)될 때 필요한 클린업 작업 (선택 사항)
+      };
+    }, [fetchPosts])
+  );
+
   const executeLocationRefresh = useCallback(async () => {
-  setIsLocationRefreshing(true); // 로딩 시작
+  setIsLocationRefreshing(true);
   try {
-    // 1. 위치 권한 요청
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(
@@ -92,16 +94,14 @@ export function TabOneScreen() {
       return;
     }
 
-    // 2. 현재 위치 가져오기
     const { coords } = await Location.getCurrentPositionAsync({});
-    const userID = await AsyncStorage.getItem('userID'); // 사용자 ID 필요
+    const userID = await AsyncStorage.getItem('userID');
 
     if (!userID) {
       Alert.alert('오류', '사용자 ID를 찾을 수 없습니다. 로그인이 필요합니다.');
       return;
     }
 
-    // 3. 서버에 위치 업데이트 및 행정동 정보 요청
     const updateRes = await updateUserLocation({ userId: userID, lat: coords.latitude, lon: coords.longitude });
 
     const parts = updateRes.adminDong.split(' ');
@@ -110,18 +110,17 @@ export function TabOneScreen() {
     } else {
       setCurrentAdminDong(updateRes.adminDong);
     }
-    await AsyncStorage.setItem('userLat', String(coords.latitude)); // AsyncStorage 업데이트
-    await AsyncStorage.setItem('userLon', String(coords.longitude)); // AsyncStorage 업데이트
-    // 👈 AsyncStorage 키를 'adminDong'으로 통일
+    await AsyncStorage.setItem('userLat', String(coords.latitude));
+    await AsyncStorage.setItem('userLon', String(coords.longitude));
     await AsyncStorage.setItem('userAdminDong', updateRes.adminDong);
 
     Alert.alert('알림', `위치 정보가 '${updateRes.adminDong}'으로 업데이트되었습니다.`);
-    fetchPosts(); // 위치 업데이트 후 게시물 목록 새로고침
+    fetchPosts();
   } catch (e: any) {
     console.error('위치 새로고침 오류:', e);
     Alert.alert('오류', '위치 정보를 새로고침하는 데 실패했습니다: ' + e.message);
   } finally {
-    setIsLocationRefreshing(false); // 로딩 종료
+    setIsLocationRefreshing(false);
   }
 }, [fetchPosts]);
 
@@ -132,32 +131,24 @@ export function TabOneScreen() {
       [
         {
           text: '취소',
-          onPress: () => setIsConfirmModalVisible(false), // Alert.alert 닫힘
+          onPress: () => setIsConfirmModalVisible(false),
           style: 'cancel',
         },
         {
           text: '확인',
           onPress: () => {
-            setIsConfirmModalVisible(false); // Alert.alert 닫힘
-            executeLocationRefresh(); // 확인 시 실제 새로고침 로직 실행
+            setIsConfirmModalVisible(false);
+            executeLocationRefresh();
           },
         },
       ],
       { cancelable: true }
     );
-    // setIsConfirmModalVisible(true); // Alert.alert를 사용하므로 이 상태는 직접적으로 필요 없음
-  }, [executeLocationRefresh]); // executeLocationRefresh가 의존성이므로 포함
+  }, [executeLocationRefresh]);
 
   const handleMyPagePress = useCallback(() => {
-    // 'MyPage'는 네비게이션 스택에 정의된 라우트 이름이어야 합니다.
-    // 필요에 따라 다른 라우트 이름으로 변경하세요.
     navigation.navigate('MyPage');
   }, [navigation]);
-
-
-  useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -165,7 +156,6 @@ export function TabOneScreen() {
     setRefreshing(false);
   }, [fetchPosts]);
 
-  // 상단바 버튼 설정 (기존)
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -174,19 +164,19 @@ export function TabOneScreen() {
           <TouchableOpacity
           onPress={executeLocationRefresh}
           style={styles.headerButton}
-          disabled={isLocationRefreshing} // 로딩 중에는 버튼 비활성화
+          disabled={isLocationRefreshing}
           >
             {isLocationRefreshing ? (
-              <ActivityIndicator size="small" color="#f4511e" /> // 로딩 중 스피너 표시
+              <ActivityIndicator size="small" color="#f4511e" />
             ) : (
-              <Ionicons name="refresh" size={24} color="#f4511e" /> // 새로고침 아이콘
+              <Ionicons name="refresh" size={24} color="#f4511e" />
             )}
           </TouchableOpacity>
           <TouchableOpacity
               onPress={handleMyPagePress}
-              style={styles.headerButton} // 동일한 스타일 사용 또는 myPageButton 스타일 추가
+              style={styles.headerButton}
           >
-            <Ionicons name="person-circle" size={24} color="#f4511e" /> {/* 마이페이지 아이콘 */}
+            <Ionicons name="person-circle" size={24} color="#f4511e" />
           </TouchableOpacity>
 
         </View>
@@ -214,7 +204,7 @@ export function TabOneScreen() {
         content: description,
         lat: Number(userLat),
         lon: Number(userLon),
-        image_uri: imageUri, // 이미지 URI가 있을 경우에만 포함
+        image_uri: imageUri,
       });
       console.log("게시물 성공적으로 생성:", postRes);
 
@@ -257,12 +247,12 @@ export function TabOneScreen() {
           <TouchableOpacity
               onPress={handleLocationRefreshConfirmation}
               style={styles.inlineRefreshButton}
-              disabled={isLocationRefreshing} // 로딩 중에는 버튼 비활성화
+              disabled={isLocationRefreshing}
             >
               {isLocationRefreshing ? (
                 <ActivityIndicator size="small" color="#f4511e" />
               ) : (
-                <Ionicons name="locate-outline" size={25} color="#f4511e" /> 
+                <Ionicons name="locate-outline" size={25} color="#f4511e" />
               )}
             </TouchableOpacity>
         </View>
@@ -271,7 +261,7 @@ export function TabOneScreen() {
         
         <TouchableOpacity
               onPress={handleMyPagePress}
-              style={styles.headerButton} // 동일한 스타일 사용 또는 myPageButton 스타일 추가
+              style={styles.headerButton}
           >
             <Ionicons name="person-circle" size={35} color="#f4511e" />
         </TouchableOpacity>
@@ -338,7 +328,6 @@ const styles = StyleSheet.create({
   textDong: {
     fontSize: 24,
     fontWeight: 'bold',
-    // marginBottom: 10,
     marginLeft: 10,
     textAlign: 'left',
   },
@@ -359,7 +348,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     flexGrow: 1,
   },
-  listItem: { // 이 스타일은 현재 코드에서 사용되지 않는 것 같습니다.
+  listItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -372,16 +361,16 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  itemSubtitle: { // 이 스타일은 현재 코드에서 사용되지 않는 것 같습니다.
+  itemSubtitle: {
     fontSize: 12,
     color: '#999',
     marginTop: 4,
   },
-  textContainer: { // 이 스타일은 현재 코드에서 사용되지 않는 것 같습니다.
+  textContainer: {
     flexDirection: 'column',
     flex: 1,
   },
-  imageContainer: { // 이 스타일은 현재 코드에서 사용되지 않는 것 같습니다.
+  imageContainer: {
     marginLeft: 10,
   },
   fab: {
@@ -486,7 +475,7 @@ const styles = StyleSheet.create({
   },
   headerRightContainer: {
     flexDirection: 'row',
-    marginRight: 5, // 전체 컨테이너의 오른쪽 여백
+    marginRight: 5,
   },
   locationInfoContainer:{
     flexDirection:'row',

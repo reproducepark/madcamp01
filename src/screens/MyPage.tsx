@@ -14,7 +14,7 @@ interface UserPost {
   title: string;
   image_url: string | null; // 이미지 URL은 null일 수도 있습니다.
   created_at: string; // 게시물 생성 시간
-  admin_dong: string;
+  admin_dong: string; // admin_dong 필드 추가
   nickname: string;
   // content 필드는 PostsbyUserIdResponse에 없으므로 제거하거나 필요에 따라 추가
 }
@@ -86,9 +86,11 @@ export function MyPageScreen() {
       )}
       <View style={styles.postItemContent}>
         <Text style={styles.postItemTitle}>{item.title}</Text>
-        {/* PostsbyUserIdResponse에는 content 필드가 없으므로 주석 처리하거나 필요에 따라 조정 */}
-        {/* <Text style={styles.postItemDescription} numberOfLines={2}>{item.content}</Text> */}
-        <Text style={styles.postItemDate}>{new Date(item.created_at).toLocaleDateString('ko-KR')}</Text>
+        <View style={styles.postItemInfoRow}>
+          <Text style={styles.postItemDong}>{item.admin_dong}</Text>
+          <Text style={styles.postItemSeparator}>|</Text>
+          <Text style={styles.postItemDate}>{new Date(item.created_at).toLocaleDateString('ko-KR')}</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -107,8 +109,6 @@ export function MyPageScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* 사용자 정보 카드 */}
-        {/* 기존 infoCard 스타일 대신 userInfoDetails를 직접 사용 */}
         <View style={styles.userInfoDetails}>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabelNickname}>{nickname || '정보 없음'}</Text>
@@ -118,7 +118,8 @@ export function MyPageScreen() {
           </View>
         </View>
 
-        {/* 내가 쓴 글 섹션 */}
+        <View style={styles.divider} />
+
         <Text style={styles.sectionHeader}>내가 쓴 글</Text>
         {postsLoading ? (
           <View style={styles.postsLoadingContainer}>
@@ -146,13 +147,13 @@ export function MyPageScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#ffffff', // 배경색을 흰색으로 변경
   },
   container: {
     flex: 1,
     paddingHorizontal: 20, // 좌우 여백 조정
-    paddingTop: 20,
-    backgroundColor: '#f8f8f8',
+    paddingTop: 20, // 상단 여백 조정
+    backgroundColor: '#ffffff', // 배경색을 흰색으로 변경
   },
   loadingContainer: {
     flex: 1,
@@ -164,20 +165,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#555',
   },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 30,
-  },
-  // infoCard 스타일 제거
-  // icon: { // 아이콘을 사용하지 않으므로 주석 처리
-  //   marginRight: 20,
-  // },
   userInfoDetails: {
     width: '100%', // 전체 너비 사용
-    marginBottom: 20, // "내가 쓴 글" 섹션과의 간격
+    marginBottom: 20, // 구분선 위 간격
     paddingHorizontal: 10, // 좌우 패딩 추가
+    paddingBottom: 10, // 하단 패딩 추가
   },
   infoRow: {
     flexDirection: 'row',
@@ -194,15 +186,17 @@ const styles = StyleSheet.create({
     fontSize: 14, // 동네 정보 크기 조정
     color: '#777',
   },
-  infoValue: {
-    fontSize: 18,
-    color: '#333',
+  divider: { // 새로운 구분선 스타일
+    height: 1, // 얇은 줄
+    backgroundColor: '#e0e0e0', // 회색
+    marginHorizontal: 0, // 컨테이너 패딩에 맞춰 0으로 설정
+    marginBottom: 20, // 구분선 아래 "내가 쓴 글" 섹션과의 간격
   },
   sectionHeader: {
     fontSize: 20, // 섹션 헤더 크기 조정
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 10, // 간격 줄임
+    marginBottom: 15, // 간격 늘림
     alignSelf: 'flex-start',
     marginLeft: 10,
   },
@@ -214,16 +208,15 @@ const styles = StyleSheet.create({
   },
   postsListContainer: {
     width: '100%',
-    paddingHorizontal: 10,
+    paddingHorizontal: 10, // 글 목록 좌우 패딩
     paddingBottom: 20,
-    flexGrow: 1,
-    flex: 1,
+    flexGrow: 1, // 컨텐츠가 적을 때도 FlatList가 전체 공간을 차지하도록
   },
   postItem: {
     flexDirection: 'row',
     backgroundColor: 'transparent', // 배경색 제거
     borderRadius: 0, // 둥근 모서리 제거
-    paddingVertical: 10, // 상하 패딩 조정
+    paddingVertical: 12, // 상하 패딩 조정
     paddingHorizontal: 0, // 좌우 패딩 제거 (필요에 따라 조정)
     marginBottom: 0, // 아이템 사이 간격 제거
     shadowColor: 'transparent', // 그림자 제거
@@ -231,13 +224,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
-    alignItems: 'center',
+    alignItems: 'center', // 세로 중앙 정렬
     borderBottomWidth: 1, // 구분선 추가
-    borderBottomColor: '#eee',
+    borderBottomColor: '#eee', // 구분선 색상
   },
   postItemImage: {
-    width: 60, // 이미지 크기 조정
-    height: 60,
+    width: 65, // 이미지 크기 조정
+    height: 65,
     borderRadius: 8,
     marginRight: 15,
     backgroundColor: '#eee',
@@ -249,17 +242,30 @@ const styles = StyleSheet.create({
   postItemTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 2, // 제목 아래 간격 줄임
+    marginBottom: 4, // 제목 아래 간격 늘림
     color: '#333',
   },
-  postItemDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 2,
+  postItemInfoRow: { // 동네와 날짜를 함께 표시하기 위한 새 스타일
+    flexDirection: 'row',
+    alignItems: 'center', // 이 부분으로 내용물들을 세로 중앙에 정렬
+    // lineHeight를 명시적으로 설정하여 텍스트 높이를 통일
+    lineHeight: 18, // 폰트 사이즈 12에 적당한 라인 높이
+  },
+  postItemDong: { // 동네 정보 스타일
+    fontSize: 12,
+    color: '#999',
+    lineHeight: 18, // 폰트 사이즈 12에 적당한 라인 높이
+  },
+  postItemSeparator: { // 구분자 스타일
+    fontSize: 12,
+    color: '#999',
+    marginHorizontal: 5, // 구분자 좌우 간격
+    lineHeight: 18, // 폰트 사이즈 12에 적당한 라인 높이
   },
   postItemDate: {
     fontSize: 12,
     color: '#999',
+    lineHeight: 18, // 폰트 사이즈 12에 적당한 라인 높이
   },
   noPostsContainer: {
     flex: 1,

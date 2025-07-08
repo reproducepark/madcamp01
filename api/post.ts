@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface PostByIdResponse {
   id: number;
-  userId: string;
+  user_id: string;
   title : string;
   content: string;
   image_url?: string;
