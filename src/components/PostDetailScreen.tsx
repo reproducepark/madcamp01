@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback, useLayoutEffect } from 'react';
-import { Modal, TouchableOpacity, View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, Dimensions, Pressable, Alert, TextInput, RefreshControl, Platform, KeyboardAvoidingView } from 'react-native'; // KeyboardAvoidingView와 Platform 임포트
+import { Modal, TouchableOpacity, View, Text, StyleSheet, ActivityIndicator, Image, Dimensions, Pressable, Alert, TextInput, RefreshControl, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getPostById, PostByIdResponse, deletePost, updatePost, getCommentsByPostId, createComment, updateComment, deleteComment, Comment, ToggleLikePayload, toggleLike, getLikesCountByPostId, getLikeStatusForUser, LikesCountResponse, LikeStatusResponse } from '../../api/post';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'; // KeyboardAwareScrollView 임포트
 
 import { TabOneStackParamList } from '../navigation/TabOneStack';
 import { CustomConfirmModal } from './CustomConfirmModal';
@@ -193,7 +194,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
 
   // 게시물 삭제 API 호출 및 상태 업데이트
   const confirmDelete = async () => {
-    setIsDeleteConfirmModalVisible(false); // 오타 수정: setIsDeleteConfirmModalModalVisible -> setIsDeleteConfirmModalVisible
+    setIsDeleteConfirmModalVisible(false);
     if (!post || !currentUserId) {
       Alert.alert('오류', '게시물 정보 또는 사용자 ID가 없습니다.');
       return;
@@ -336,201 +337,196 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
   const isMyPost = currentUserId === post.user_id;
 
   return (
-    <KeyboardAvoidingView // 전체 화면을 감싸도록 KeyboardAvoidingView 추가
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} // iOS는 'padding', Android는 'height'가 적합
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0} // 필요에 따라 오프셋 조정 (헤더 높이 등)
+    <KeyboardAwareScrollView // KeyboardAwareScrollView로 변경
+      style={styles.container}
+      contentContainerStyle={styles.contentContainerForKeyboardAwareScrollView} // 추가
+      extraScrollHeight={Platform.OS === 'ios' ? 0 : 20} // iOS와 Android의 키보드 높이 차이 고려
+      enableOnAndroid={true} // 안드로이드에서 활성화
+      keyboardShouldPersistTaps="handled" // 키보드가 열려 있어도 스크롤뷰 탭 가능
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={refreshAllData}
+          colors={['#f4511e']} // 로딩 스피너 색상
+          tintColor={'#f4511e'} // iOS에서 로딩 스피너 색상
+        />
+      }
     >
-      <ScrollView 
-        style={styles.container}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={refreshAllData}
-            colors={['#f4511e']} // 로딩 스피너 색상
-            tintColor={'#f4511e'} // iOS에서 로딩 스피너 색상
-          />
-        }
-        // 댓글 입력 시 키보드가 스크롤뷰 콘텐츠를 가리지 않도록 설정
-        // 이 부분은 KeyboardAvoidingView로 대부분 처리되지만, 필요에 따라 추가할 수 있습니다.
-        keyboardShouldPersistTaps="handled" // 키보드가 열려 있어도 스크롤뷰 탭 가능
-      >
-        {post.image_url && (
-          <TouchableOpacity onPress={() => handleImagePress(post.image_url!)} activeOpacity={0.8}>
-            <Image source={{ uri: post.image_url }} style={styles.postImage} />
-          </TouchableOpacity>
-        )}
-        <View style={styles.contentContainer}>
-            <View style={styles.titleAndNicknameContainer}>
-              <Text style={styles.title}>{post.title}</Text>
-            </View>
-            <View style={styles.nicknameContainer}>
-              <Ionicons name="person-circle" size={20} color="#f4511e" />
-              <Text style={styles.nicknameRight}>{post.nickname}</Text>
-            </View>
-            
-            <View style={styles.metaInfoContainer}>
-              <Text style={styles.dateTimeLocation}>
-                {formatRelativeTime(post.created_at)} · {post.admin_dong}
-              </Text>
-            </View>
-
-            <Text style={styles.content}>{post.content}</Text>
-            
-            {/* 좋아요 버튼 및 카운트 */}
-            <View style={styles.likesContainer}>
-              <TouchableOpacity onPress={handleToggleLike} style={styles.likeButton}>
-                <Ionicons name={isLiked ? "heart" : "heart-outline"} size={24} color={isLiked ? "red" : "#666"} />
-                <Text style={styles.likeCount}>{likesCount}</Text>
-              </TouchableOpacity>
-            </View>
-
-            {isMyPost && ( // 내 게시물인 경우에만 편집/삭제 버튼 표시
-              <View style={styles.buttonContainer}>
-                <Pressable
-                  onPress={handleEdit}
-                  style={({ pressed }) => [
-                    styles.iconButton,
-                    { backgroundColor: pressed ? '#d3d3d3' : 'transparent' },
-                  ]}
-                >
-                  <Image
-                    source={require('../../assets/icons/edit.png')}
-                    style={styles.icon}
-                  />
-                </Pressable>
-                <Pressable
-                  onPress={handleDeletePress}
-                  style={({ pressed }) => [
-                    styles.iconButton,
-                    { backgroundColor: pressed ? '#d3d3d3' : 'transparent' },
-                  ]}
-                >
-                  <Image
-                    source={require('../../assets/icons/trashcan.png')}
-                    style={styles.icon}
-                  />
-                </Pressable>
-              </View>
-            )}
+      {post.image_url && (
+        <TouchableOpacity onPress={() => handleImagePress(post.image_url!)} activeOpacity={0.8}>
+          <Image source={{ uri: post.image_url }} style={styles.postImage} />
+        </TouchableOpacity>
+      )}
+      <View style={styles.contentSection}> {/* contentContainer를 contentSection으로 이름 변경 */}
+          <View style={styles.titleAndNicknameContainer}>
+            <Text style={styles.title}>{post.title}</Text>
+          </View>
+          <View style={styles.nicknameContainer}>
+            <Ionicons name="person-circle" size={20} color="#f4511e" />
+            <Text style={styles.nicknameRight}>{post.nickname}</Text>
+          </View>
+          
+          <View style={styles.metaInfoContainer}>
+            <Text style={styles.dateTimeLocation}>
+              {formatRelativeTime(post.created_at)} · {post.admin_dong}
+            </Text>
           </View>
 
-          {/* 댓글 섹션 */}
-          <View style={styles.commentsSection}>
-            <Text style={styles.commentsTitle}>댓글 ({comments.length})</Text>
-            <View style={styles.commentInputContainer}>
-              <TextInput
-                style={styles.commentInput}
-                placeholder="댓글을 입력하세요..."
-                multiline
-                value={newCommentText}
-                onChangeText={setNewCommentText}
-              />
-              <TouchableOpacity style={styles.submitCommentButton} onPress={handleCreateComment}>
-                <Text style={styles.submitCommentButtonText}>작성</Text>
-              </TouchableOpacity>
-            </View>
-
-            {comments.length === 0 ? (
-              <Text style={styles.noCommentsText}>아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</Text>
-            ) : (
-              comments.map((comment) => (
-                <View key={comment.id} style={styles.commentItem}>
-                  <View style={styles.commentHeader}>
-                    <Text style={styles.commentNickname}>{comment.nickname}</Text>
-                    <Text style={styles.commentTime}>{formatRelativeTime(comment.created_at)}</Text>
-                  </View>
-                  {editingCommentId === comment.id ? (
-                    <View style={styles.editingCommentContainer}>
-                      <TextInput
-                        style={styles.editingCommentInput}
-                        value={editingCommentText}
-                        onChangeText={setEditingCommentText}
-                        multiline
-                      />
-                      <View style={styles.editingCommentButtons}>
-                        <TouchableOpacity style={styles.editSaveButton} onPress={() => handleUpdateComment(comment.id)}>
-                          <Text style={styles.editSaveButtonText}>저장</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.editCancelButton} onPress={() => setEditingCommentId(null)}>
-                          <Text style={styles.editCancelButtonText}>취소</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  ) : (
-                    <Text style={styles.commentContent}>{comment.content}</Text>
-                  )}
-                  
-                  {currentUserId === comment.user_id && editingCommentId !== comment.id && (
-                    <View style={styles.commentActions}>
-                      <TouchableOpacity onPress={() => handleEditComment(comment)}>
-                        <Text style={styles.commentActionText}>수정</Text>
-                      </TouchableOpacity>
-                      <Text style={styles.actionSeparator}>|</Text>
-                      <TouchableOpacity onPress={() => handleDeleteCommentPress(comment.id)}>
-                        <Text style={styles.commentActionText}>삭제</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              ))
-            )}
+          <Text style={styles.content}>{post.content}</Text>
+          
+          {/* 좋아요 버튼 및 카운트 */}
+          <View style={styles.likesContainer}>
+            <TouchableOpacity onPress={handleToggleLike} style={styles.likeButton}>
+              <Ionicons name={isLiked ? "heart" : "heart-outline"} size={24} color={isLiked ? "red" : "#666"} />
+              <Text style={styles.likeCount}>{likesCount}</Text>
+            </TouchableOpacity>
           </View>
 
-
-          <Modal
-            visible={isImageModalVisible}
-            transparent={true}
-            onRequestClose={handleCloseImageModal}
-            animationType='fade'
-          >
-            <View style={styles.fullScreenModalContainer}>
-              <TouchableOpacity style={styles.closeButton} onPress={handleCloseImageModal}>
-                <Ionicons name="close-circle" size={40} color="white" />
-              </TouchableOpacity>
-              {selectedImageUri && (
+          {isMyPost && ( // 내 게시물인 경우에만 편집/삭제 버튼 표시
+            <View style={styles.buttonContainer}>
+              <Pressable
+                onPress={handleEdit}
+                style={({ pressed }) => [
+                  styles.iconButton,
+                  { backgroundColor: pressed ? '#d3d3d3' : 'transparent' },
+                ]}
+              >
                 <Image
-                  source={{ uri: selectedImageUri }}
-                  style={styles.fullScreenImage}
-                  resizeMode="contain"
+                  source={require('../../assets/icons/edit.png')}
+                  style={styles.icon}
                 />
-              )}
+              </Pressable>
+              <Pressable
+                onPress={handleDeletePress}
+                style={({ pressed }) => [
+                  styles.iconButton,
+                  { backgroundColor: pressed ? '#d3d3d3' : 'transparent' },
+                ]}
+              >
+                <Image
+                  source={require('../../assets/icons/trashcan.png')}
+                  style={styles.icon}
+                />
+              </Pressable>
             </View>
-          </Modal>
+          )}
+        </View>
 
-          {/* 게시물 삭제 확인 모달 */}
-          <CustomConfirmModal
-            isVisible={isDeleteConfirmModalVisible}
-            title="정말 삭제할까요?"
-            message="삭제된 글은 복구할 수 없어요."
-            onCancel={() => setIsDeleteConfirmModalVisible(false)}
-            onConfirm={confirmDelete}
-            confirmText="삭제"
-            cancelText="취소"
-          />
+        {/* 댓글 섹션 */}
+        <View style={styles.commentsSection}>
+          <Text style={styles.commentsTitle}>댓글 ({comments.length})</Text>
+          <View style={styles.commentInputContainer}>
+            <TextInput
+              style={styles.commentInput}
+              placeholder="댓글을 입력하세요..."
+              multiline
+              value={newCommentText}
+              onChangeText={setNewCommentText}
+            />
+            <TouchableOpacity style={styles.submitCommentButton} onPress={handleCreateComment}>
+              <Text style={styles.submitCommentButtonText}>작성</Text>
+            </TouchableOpacity>
+          </View>
 
-          {/* 댓글 삭제 확인 모달 */}
-          <CustomConfirmModal
-            isVisible={isCommentDeleteConfirmModalVisible}
-            title="댓글을 삭제할까요?"
-            message="삭제된 댓글은 복구할 수 없습니다."
-            onCancel={() => setIsCommentDeleteConfirmModalVisible(false)}
-            onConfirm={confirmDeleteComment}
-            confirmText="삭제"
-            cancelText="취소"
-          />
+          {comments.length === 0 ? (
+            <Text style={styles.noCommentsText}>아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</Text>
+          ) : (
+            comments.map((comment) => (
+              <View key={comment.id} style={styles.commentItem}>
+                <View style={styles.commentHeader}>
+                  <Text style={styles.commentNickname}>{comment.nickname}</Text>
+                  <Text style={styles.commentTime}>{formatRelativeTime(comment.created_at)}</Text>
+                </View>
+                {editingCommentId === comment.id ? (
+                  <View style={styles.editingCommentContainer}>
+                    <TextInput
+                      style={styles.editingCommentInput}
+                      value={editingCommentText}
+                      onChangeText={setEditingCommentText}
+                      multiline
+                    />
+                    <View style={styles.editingCommentButtons}>
+                      <TouchableOpacity style={styles.editSaveButton} onPress={() => handleUpdateComment(comment.id)}>
+                        <Text style={styles.editSaveButtonText}>저장</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.editCancelButton} onPress={() => setEditingCommentId(null)}>
+                        <Text style={styles.editCancelButtonText}>취소</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <Text style={styles.commentContent}>{comment.content}</Text>
+                )}
+                
+                {currentUserId === comment.user_id && editingCommentId !== comment.id && (
+                  <View style={styles.commentActions}>
+                    <TouchableOpacity onPress={() => handleEditComment(comment)}>
+                      <Text style={styles.commentActionText}>수정</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.actionSeparator}>|</Text>
+                    <TouchableOpacity onPress={() => handleDeleteCommentPress(comment.id)}>
+                      <Text style={styles.commentActionText}>삭제</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            ))
+          )}
+        </View>
 
-          {/* 게시물 수정 모달 */}
-          <WriteModal
-            visible={isEditModalVisible}
-            onClose={() => setIsEditModalVisible(false)}
-            onSave={handleUpdatePost}
-            initialTitle={post.title}
-            initialDescription={post.content}
-            initialImageUri={post.image_url || undefined}
-          />
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+        <Modal
+          visible={isImageModalVisible}
+          transparent={true}
+          onRequestClose={handleCloseImageModal}
+          animationType='fade'
+        >
+          <View style={styles.fullScreenModalContainer}>
+            <TouchableOpacity style={styles.closeButton} onPress={handleCloseImageModal}>
+              <Ionicons name="close-circle" size={40} color="white" />
+            </TouchableOpacity>
+            {selectedImageUri && (
+              <Image
+                source={{ uri: selectedImageUri }}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+        </Modal>
+
+        {/* 게시물 삭제 확인 모달 */}
+        <CustomConfirmModal
+          isVisible={isDeleteConfirmModalVisible}
+          title="정말 삭제할까요?"
+          message="삭제된 글은 복구할 수 없어요."
+          onCancel={() => setIsDeleteConfirmModalVisible(false)}
+          onConfirm={confirmDelete}
+          confirmText="삭제"
+          cancelText="취소"
+        />
+
+        {/* 댓글 삭제 확인 모달 */}
+        <CustomConfirmModal
+          isVisible={isCommentDeleteConfirmModalVisible}
+          title="댓글을 삭제할까요?"
+          message="삭제된 댓글은 복구할 수 없습니다."
+          onCancel={() => setIsCommentDeleteConfirmModalVisible(false)}
+          onConfirm={confirmDeleteComment}
+          confirmText="삭제"
+          cancelText="취소"
+        />
+
+        {/* 게시물 수정 모달 */}
+        <WriteModal
+          visible={isEditModalVisible}
+          onClose={() => setIsEditModalVisible(false)}
+          onSave={handleUpdatePost}
+          initialTitle={post.title}
+          initialDescription={post.content}
+          initialImageUri={post.image_url || undefined}
+        />
+    </KeyboardAwareScrollView>
   );
 }
 
@@ -538,6 +534,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  contentContainerForKeyboardAwareScrollView: { // KeyboardAwareScrollView를 위한 컨테이너 스타일
+    paddingBottom: Platform.OS === 'ios' ? 20 : 0, // iOS 하단 여백 추가 (필요시)
   },
   centered: {
     flex: 1,
@@ -560,12 +559,12 @@ const styles = StyleSheet.create({
     height: width * 0.8,
     resizeMode: 'cover',
   },
-  contentContainer: {
+  contentSection: { // 이전 contentContainer
     backgroundColor: '#FFFFFF',
     borderRadius: 15,
     padding: 20,
     marginHorizontal: 5,
-    minHeight: height * 0.3,
+    // minHeight: height * 0.3, // KeyboardAwareScrollView 사용 시 제거하거나 조절
   },
   title: {
     fontSize: 26,
