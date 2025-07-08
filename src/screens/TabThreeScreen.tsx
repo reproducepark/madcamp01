@@ -19,7 +19,7 @@ export function TabThreeScreen() {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
-  const snapPoints = ['30%', '60%', '100%'];
+  const snapPoints = ['30%', '40%', '80%'];
 
   // 초기 위치 설정 로직
   useEffect(() => {
