@@ -1,6 +1,6 @@
 // components/WriteModal.tsx
 
-import React, { useState, useEffect } from 'react'; // useEffect 임포트
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -21,8 +21,8 @@ import * as ImageManipulator from 'expo-image-manipulator';
 interface WriteModalProps {
   visible: boolean;
   onClose: () => void;
-  onSave: (title: string, description: string, imageUri?: string) => void;
-  // ✨ 초기값을 받을 수 있도록 props 추가
+  // onSave 함수의 시그니처 변경: 이미지 상태 플래그 추가
+  onSave: (title: string, description: string, imageUri?: string, imageDeleteFlag?: boolean, imageUpdateFlag?: boolean) => void;
   initialTitle?: string;
   initialDescription?: string;
   initialImageUri?: string;
@@ -32,13 +32,15 @@ export function WriteModal({ visible, onClose, onSave, initialTitle, initialDesc
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [imageUri, setImageUri] = useState<string|undefined>(undefined);
+  const [originalImageUri, setOriginalImageUri] = useState<string|undefined>(undefined); // ✨ 원본 이미지 URI 상태 추가
 
-  // ✨ visible이 true가 될 때마다 초기값으로 상태를 설정
+  // visible이 true가 될 때마다 초기값으로 상태를 설정
   useEffect(() => {
     if (visible) {
       setNewTitle(initialTitle || '');
       setNewDescription(initialDescription || '');
       setImageUri(initialImageUri || undefined);
+      setOriginalImageUri(initialImageUri || undefined); // ✨ 원본 이미지 URI도 설정
     }
   }, [visible, initialTitle, initialDescription, initialImageUri]);
 
@@ -47,18 +49,31 @@ export function WriteModal({ visible, onClose, onSave, initialTitle, initialDesc
       Alert.alert('알림', '제목과 내용을 모두 입력해주세요.');
       return;
     }
-    onSave(newTitle, newDescription, imageUri);
-    // 모달을 닫을 때 상태를 초기화하지 않음. onClose가 알아서 처리
-    // setNewTitle(''); // 이제 여기서는 초기화하지 않습니다.
-    // setNewDescription(''); // 이제 여기서는 초기화하지 않습니다.
-    // setImageUri(undefined); // 이제 여기서는 초기화하지 않습니다.
+
+    // ✨ 이미지 관련 플래그 로직 추가
+    let image_url_delete_flag = false;
+    let image_url_update_flag = false;
+
+    if (originalImageUri && !imageUri) {
+      // 원래 이미지가 있었는데, 현재 이미지가 없다면 => 이미지 삭제
+      image_url_delete_flag = true;
+    } else if (!originalImageUri && imageUri) {
+      // 원래 이미지가 없었는데, 현재 이미지가 있다면 => 이미지 새로 추가 (업데이트로 간주)
+      image_url_update_flag = true;
+    } else if (originalImageUri && imageUri && originalImageUri !== imageUri) {
+      // 원래 이미지도 있고 현재 이미지도 있지만, URI가 다르다면 => 이미지 변경 (업데이트로 간주)
+      image_url_update_flag = true;
+    }
+    // 그 외의 경우 (둘 다 없거나, 둘 다 있고 URI가 같으면) 플래그는 false 유지
+
+    onSave(newTitle, newDescription, imageUri, image_url_delete_flag, image_url_update_flag);
   };
 
   const handleCancel = () => {
-    // 취소 시에는 상태를 초기화하고 모달 닫기
     setNewTitle('');
     setNewDescription('');
     setImageUri(undefined);
+    setOriginalImageUri(undefined); // ✨ 원본 이미지 URI도 초기화
     onClose();
   };
 

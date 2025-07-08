@@ -90,14 +90,14 @@ export interface NearByViewportResponse {
   nickname: string;
 }
 
-export interface UpdagePost {
+export interface UpdatePost {
   id: number;
   userId: string;
   title : string;
   content: string;
   image_url_delete_flag: boolean;
   image_url_update_flag: boolean;
-  image_uri?: string;
+  image_uri: string | null;
 }
 
 export interface UpdagePostResponse {
@@ -282,7 +282,7 @@ export async function getNearbyPostsUpper(
   return data;
 }
 
-export async function updatePost(post: UpdagePost): Promise<UpdagePostResponse> {
+export async function updatePost(post: UpdatePost): Promise<UpdagePostResponse> {
   const { id, userId, title, content, image_url_delete_flag, image_url_update_flag, image_uri } = post;
   const formData = new FormData();
 
