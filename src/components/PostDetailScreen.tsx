@@ -87,7 +87,6 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
       });
       setIsEditModalVisible(false);
       await fetchPostDetails();
-      Alert.alert('수정 완료', '게시물이 성공적으로 수정되었습니다.');
     } catch (err: any) {
       console.error("게시물 수정 실패:", err);
       Alert.alert('수정 실패', `게시물 수정에 실패했습니다: ${err.message}`);

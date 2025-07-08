@@ -1,10 +1,12 @@
+// components/CustomAlertModal.tsx
+
 import React from 'react';
 import { View, Text, StyleSheet, Modal, Pressable, Dimensions } from 'react-native';
 
 interface CustomAlertModalProps {
   isVisible: boolean;
-  title: string;
-  message: string;
+  title?: string;
+  message?: string; // ✨ message를 선택적(optional)으로 변경
   onClose: () => void;
   confirmText?: string;
 }
@@ -14,7 +16,7 @@ const { width } = Dimensions.get('window');
 export function CustomAlertModal({
   isVisible,
   title,
-  message,
+  message, // message는 이제 선택적
   onClose,
   confirmText = '확인',
 }: CustomAlertModalProps) {
@@ -27,8 +29,10 @@ export function CustomAlertModal({
     >
       <Pressable style={styles.centeredView} onPress={onClose}>
         <View style={styles.modalView}>
-          <Text style={styles.modalTitle}>{title}</Text>
-          <Text style={styles.modalMessage}>{message}</Text>
+          {/* title이 있을 때만 렌더링 */}
+          {title && <Text style={styles.modalTitle}>{title}</Text>}
+          {/* ✨ message가 있을 때만 렌더링 */}
+          {message && <Text style={styles.modalMessage}>{message}</Text>}
           <Pressable
             style={({ pressed }) => [
               styles.button,
@@ -85,8 +89,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 20,
-    backgroundColor: '#ff6f61', // 확인 버튼 색상
-    width: '100%', // 너비 100%
+    backgroundColor: '#ff6f61',
+    width: '100%',
     alignItems: 'center',
   },
   textStyle: {

@@ -1,3 +1,5 @@
+// compoents/CustomConfirmModal.tsx
+
 import React from 'react';
 import { View, Text, StyleSheet, Modal, Pressable, Dimensions } from 'react-native';
 

@@ -1,5 +1,3 @@
-// components/WriteModal.tsx
-
 import React, { useState, useEffect } from 'react';
 import {
   Modal,
@@ -10,18 +8,18 @@ import {
   SafeAreaView,
   StyleSheet,
   Platform,
-  Alert,
+  // Alert, // ✨ Alert는 더 이상 필요 없으니 주석 처리하거나 제거합니다.
   TouchableWithoutFeedback,
   Keyboard,
   Image
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { CustomAlertModal } from './CustomAlertModal'; // ✨ CustomAlertModal 임포트
 
 interface WriteModalProps {
   visible: boolean;
   onClose: () => void;
-  // onSave 함수의 시그니처 변경: 이미지 상태 플래그 추가
   onSave: (title: string, description: string, imageUri?: string, imageDeleteFlag?: boolean, imageUpdateFlag?: boolean) => void;
   initialTitle?: string;
   initialDescription?: string;
@@ -31,8 +29,13 @@ interface WriteModalProps {
 export function WriteModal({ visible, onClose, onSave, initialTitle, initialDescription, initialImageUri }: WriteModalProps) {
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
-  const [imageUri, setImageUri] = useState<string|undefined>(undefined);
-  const [originalImageUri, setOriginalImageUri] = useState<string|undefined>(undefined); // ✨ 원본 이미지 URI 상태 추가
+  const [imageUri, setImageUri] = useState<string | undefined>(undefined);
+  const [originalImageUri, setOriginalImageUri] = useState<string | undefined>(undefined);
+
+  // ✨ CustomAlertModal 관련 상태 추가
+  const [isAlertVisible, setIsAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
 
   // visible이 true가 될 때마다 초기값으로 상태를 설정
   useEffect(() => {
@@ -40,31 +43,37 @@ export function WriteModal({ visible, onClose, onSave, initialTitle, initialDesc
       setNewTitle(initialTitle || '');
       setNewDescription(initialDescription || '');
       setImageUri(initialImageUri || undefined);
-      setOriginalImageUri(initialImageUri || undefined); // ✨ 원본 이미지 URI도 설정
+      setOriginalImageUri(initialImageUri || undefined);
+      // 모달이 열릴 때 알림 상태 초기화
+      setIsAlertVisible(false);
+      setAlertTitle('');
+      setAlertMessage('');
     }
   }, [visible, initialTitle, initialDescription, initialImageUri]);
 
+  // ✨ CustomAlertModal을 띄우는 헬퍼 함수
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsAlertVisible(true);
+  };
+
   const handleSave = () => {
     if (newTitle.trim() === '' || newDescription.trim() === '') {
-      Alert.alert('알림', '제목과 내용을 모두 입력해주세요.');
+      showAlert('알림', '제목과 내용을 모두 입력해야 해요.'); // ✨ CustomAlertModal 사용
       return;
     }
 
-    // ✨ 이미지 관련 플래그 로직 추가
     let image_url_delete_flag = false;
     let image_url_update_flag = false;
 
     if (originalImageUri && !imageUri) {
-      // 원래 이미지가 있었는데, 현재 이미지가 없다면 => 이미지 삭제
       image_url_delete_flag = true;
     } else if (!originalImageUri && imageUri) {
-      // 원래 이미지가 없었는데, 현재 이미지가 있다면 => 이미지 새로 추가 (업데이트로 간주)
       image_url_update_flag = true;
     } else if (originalImageUri && imageUri && originalImageUri !== imageUri) {
-      // 원래 이미지도 있고 현재 이미지도 있지만, URI가 다르다면 => 이미지 변경 (업데이트로 간주)
       image_url_update_flag = true;
     }
-    // 그 외의 경우 (둘 다 없거나, 둘 다 있고 URI가 같으면) 플래그는 false 유지
 
     onSave(newTitle, newDescription, imageUri, image_url_delete_flag, image_url_update_flag);
   };
@@ -73,17 +82,17 @@ export function WriteModal({ visible, onClose, onSave, initialTitle, initialDesc
     setNewTitle('');
     setNewDescription('');
     setImageUri(undefined);
-    setOriginalImageUri(undefined); // ✨ 원본 이미지 URI도 초기화
+    setOriginalImageUri(undefined);
     onClose();
   };
 
   const handleAttachPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-        Alert.alert(
+        showAlert(
         '권한 필요',
         '사진을 선택하려면 미디어 라이브러리 접근 권한이 필요합니다.'
-        );
+        ); // ✨ CustomAlertModal 사용
         return;
     }
 
@@ -102,11 +111,12 @@ export function WriteModal({ visible, onClose, onSave, initialTitle, initialDesc
               { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
             );
             console.log('압축된 이미지 URI:', manipResult.uri);
-            Alert.alert('사진 첨부', `사진이 압축 및 선택되었습니다: ${manipResult.uri.substring(0, 30)}...`);
+            // ✨ CustomAlertModal 사용
+            showAlert('사진 첨부', `사진이 압축 및 선택되었습니다: ${manipResult.uri.substring(0, 30)}...`);
             setImageUri(manipResult.uri);
         } catch (error) {
             console.error("이미지 압축 중 오류 발생:", error);
-            Alert.alert('오류', '이미지 압축에 실패했습니다.');
+            showAlert('오류', '이미지 압축에 실패했습니다.'); // ✨ CustomAlertModal 사용
             setImageUri(pickedImageUri);
         }
     }
@@ -115,7 +125,6 @@ export function WriteModal({ visible, onClose, onSave, initialTitle, initialDesc
   const handleDeleteImage = () => {
     setImageUri(undefined);
   };
-
 
   return (
     <Modal
@@ -171,6 +180,14 @@ export function WriteModal({ visible, onClose, onSave, initialTitle, initialDesc
           </View>
         </SafeAreaView>
       </TouchableWithoutFeedback>
+
+      {/* ✨ CustomAlertModal 추가 */}
+      <CustomAlertModal
+        isVisible={isAlertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setIsAlertVisible(false)} // 모달 닫기
+      />
     </Modal>
   );
 }
