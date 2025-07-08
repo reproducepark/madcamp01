@@ -339,7 +339,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
     <KeyboardAvoidingView // 전체 화면을 감싸도록 KeyboardAvoidingView 추가
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'} // iOS는 'padding', Android는 'height'가 적합
-      keyboardVerticalOffset={0} // 키보드 위에 딱 붙도록 오프셋을 0으로 설정
+      keyboardVerticalOffset={95} // 키보드 위에 딱 붙도록 오프셋을 0으로 설정
     >
       <ScrollView 
         style={styles.scrollViewContent} // 새로운 스타일 적용
