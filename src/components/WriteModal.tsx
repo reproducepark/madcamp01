@@ -1,5 +1,6 @@
 // components/WriteModal.tsx
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react'; // useEffect 임포트
 import {
   Modal,
   View,
@@ -15,18 +16,31 @@ import {
   Image
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator'; // ImageManipulator 임포트
+import * as ImageManipulator from 'expo-image-manipulator';
 
 interface WriteModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (title: string, description: string, imageUri?: string) => void;
+  // ✨ 초기값을 받을 수 있도록 props 추가
+  initialTitle?: string;
+  initialDescription?: string;
+  initialImageUri?: string;
 }
 
-export function WriteModal({ visible, onClose, onSave }: WriteModalProps) {
+export function WriteModal({ visible, onClose, onSave, initialTitle, initialDescription, initialImageUri }: WriteModalProps) {
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [imageUri, setImageUri] = useState<string|undefined>(undefined);
+
+  // ✨ visible이 true가 될 때마다 초기값으로 상태를 설정
+  useEffect(() => {
+    if (visible) {
+      setNewTitle(initialTitle || '');
+      setNewDescription(initialDescription || '');
+      setImageUri(initialImageUri || undefined);
+    }
+  }, [visible, initialTitle, initialDescription, initialImageUri]);
 
   const handleSave = () => {
     if (newTitle.trim() === '' || newDescription.trim() === '') {
@@ -34,14 +48,17 @@ export function WriteModal({ visible, onClose, onSave }: WriteModalProps) {
       return;
     }
     onSave(newTitle, newDescription, imageUri);
-    setNewTitle('');
-    setNewDescription('');
-    setImageUri(undefined);
+    // 모달을 닫을 때 상태를 초기화하지 않음. onClose가 알아서 처리
+    // setNewTitle(''); // 이제 여기서는 초기화하지 않습니다.
+    // setNewDescription(''); // 이제 여기서는 초기화하지 않습니다.
+    // setImageUri(undefined); // 이제 여기서는 초기화하지 않습니다.
   };
 
   const handleCancel = () => {
+    // 취소 시에는 상태를 초기화하고 모달 닫기
     setNewTitle('');
     setNewDescription('');
+    setImageUri(undefined);
     onClose();
   };
 
@@ -56,7 +73,7 @@ export function WriteModal({ visible, onClose, onSave }: WriteModalProps) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ ImagePicker.MediaTypeOptions 사용
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 1,
     });
 
@@ -64,11 +81,10 @@ export function WriteModal({ visible, onClose, onSave }: WriteModalProps) {
         const pickedImageUri = result.assets[0].uri;
 
         try {
-            // 이미지 압축
             const manipResult = await ImageManipulator.manipulateAsync(
               pickedImageUri,
-              [{ resize: { width: 1200 } }], // 예시: 가로 1200px로 리사이즈
-              { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // 압축률 70%, JPEG 형식
+              [{ resize: { width: 1200 } }],
+              { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
             );
             console.log('압축된 이미지 URI:', manipResult.uri);
             Alert.alert('사진 첨부', `사진이 압축 및 선택되었습니다: ${manipResult.uri.substring(0, 30)}...`);
@@ -76,14 +92,13 @@ export function WriteModal({ visible, onClose, onSave }: WriteModalProps) {
         } catch (error) {
             console.error("이미지 압축 중 오류 발생:", error);
             Alert.alert('오류', '이미지 압축에 실패했습니다.');
-            setImageUri(pickedImageUri); // 압축 실패 시 원본 URI 사용
+            setImageUri(pickedImageUri);
         }
     }
   };
 
-  // 👈 이미지 삭제(첨부 취소) 함수
   const handleDeleteImage = () => {
-    setImageUri(undefined); // imageUri를 undefined로 설정하여 이미지 삭제
+    setImageUri(undefined);
   };
 
 
@@ -218,22 +233,22 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   imagePreviewContainer: {
-    position: 'relative', // 자식 요소인 X 버튼을 absolute로 배치하기 위해 relative 설정
+    position: 'relative',
     alignSelf: 'flex-start',
     marginTop: 10,
   },
-  deleteImageButton: { // X 버튼 스타일
+  deleteImageButton: {
     position: 'absolute',
     top: 0,
     right: -10,
-    backgroundColor: 'rgba(0,0,0,0.6)', // 반투명 검은색 배경
-    borderRadius: 10, // 원형 버튼
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 10,
     width: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  deleteImageButtonText: { // X 버튼 텍스트 스타일
+  deleteImageButtonText: {
     color: 'white',
     fontSize: 12,
     fontWeight: 'bold',

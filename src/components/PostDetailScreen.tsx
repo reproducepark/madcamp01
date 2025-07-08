@@ -1,13 +1,16 @@
+// components/PostDetailScreen.tsx
+
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, Dimensions, Pressable, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getPostById, PostByIdResponse, deletePost } from '../../api/post';
+import { getPostById, PostByIdResponse, deletePost, updatePost } from '../../api/post'; // updatePost 임포트
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 import { TabOneStackParamList } from '../navigation/TabOneStack';
 import { CustomConfirmModal } from './CustomConfirmModal';
-import { CustomAlertModal } from './CustomAlertModal'; // CustomAlertModal 임포트
+import { CustomAlertModal } from './CustomAlertModal';
+import { WriteModal } from './WriteModal'; // WriteModal 임포트
 
 type PostDetailScreenRouteProp = RouteProp<TabOneStackParamList, 'PostDetail'>;
 type PostDetailScreenNavigationProp = StackNavigationProp<TabOneStackParamList, 'PostDetail'>;
@@ -25,8 +28,9 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [isDeleteConfirmModalVisible, setIsDeleteConfirmModalVisible] = useState<boolean>(false); // 삭제 확인 모달
-  const [isDeleteCompleteModalVisible, setIsDeleteCompleteModalVisible] = useState<boolean>(false); // 삭제 완료 모달
+  const [isDeleteConfirmModalVisible, setIsDeleteConfirmModalVisible] = useState<boolean>(false);
+  const [isDeleteCompleteModalVisible, setIsDeleteCompleteModalVisible] = useState<boolean>(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState<boolean>(false); // 수정 모달 상태 추가
 
   useEffect(() => {
     const fetchCurrentUserId = async () => {
@@ -40,28 +44,57 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
     fetchCurrentUserId();
   }, []);
 
-  useEffect(() => {
-    const fetchPostDetails = async () => {
-      try {
-        setLoading(true);
-        const fetchedPost = await getPostById(postId);
-        setPost(fetchedPost);
-        console.log("Fetched post details:", fetchedPost);
-      } catch (err: any) {
-        console.error("Error fetching post details:", err);
-        setError(`Failed to load post: ${err.message}`);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchPostDetails = async () => {
+    try {
+      setLoading(true);
+      const fetchedPost = await getPostById(postId);
+      setPost(fetchedPost);
+      console.log("Fetched post details:", fetchedPost);
+    } catch (err: any) {
+      console.error("Error fetching post details:", err);
+      setError(`Failed to load post: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchPostDetails();
   }, [postId]);
 
+  // '수정하기' 버튼 클릭 핸들러: 수정 모달을 띄웁니다.
   const handleEdit = () => {
-    Alert.alert('수정하기', '게시물 수정 로직을 여기에 구현하세요.');
-    // 예: navigation.navigate('EditPost', { postId: post.id });
+    if (post) {
+      setIsEditModalVisible(true);
+    }
   };
+
+  // 게시물 업데이트 로직
+  const handleUpdatePost = async (title: string, content: string, imageUri?: string) => {
+    if (!post || !currentUserId) {
+      Alert.alert('오류', '게시물 정보 또는 사용자 ID가 없습니다.');
+      return;
+    }
+    try {
+      setLoading(true); // 업데이트 중 로딩 표시
+      await updatePost({
+        id: post.id,
+        userId: currentUserId,
+        title,
+        content,
+        image_uri: imageUri || null, // 이미지가 없으면 null 전달
+      });
+      setIsEditModalVisible(false); // 모달 닫기
+      await fetchPostDetails(); // 업데이트된 게시물 정보 다시 불러오기
+      Alert.alert('수정 완료', '게시물이 성공적으로 수정되었습니다.');
+    } catch (err: any) {
+      console.error("게시물 수정 실패:", err);
+      Alert.alert('수정 실패', `게시물 수정에 실패했습니다: ${err.message}`);
+    } finally {
+      setLoading(false); // 로딩 종료
+    }
+  };
+
 
   // '삭제하기' 버튼 클릭 핸들러: 삭제 확인 모달을 띄웁니다.
   const handleDeletePress = () => {
@@ -70,17 +103,14 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
 
   // 실제 삭제 로직
   const confirmDelete = async () => {
-    setIsDeleteConfirmModalVisible(false); // 삭제 확인 모달 닫기
+    setIsDeleteConfirmModalVisible(false);
     if (!post || !currentUserId) {
       Alert.alert('오류', '게시물 정보 또는 사용자 ID가 없습니다.');
       return;
     }
     try {
-      // 게시물 삭제 API 호출
       await deletePost({ id: post.id, userId: currentUserId });
-      setIsDeleteCompleteModalVisible(true); // 삭제 완료 모달 표시
-      // Alert.alert('삭제 완료', '게시물이 삭제되었습니다.'); // 기존 Alert 제거
-      // navigation.goBack(); // 삭제 완료 모달이 닫힌 후 이동하도록 변경
+      setIsDeleteCompleteModalVisible(true);
     } catch (err: any) {
       console.error("게시물 삭제 실패:", err);
       Alert.alert('삭제 실패', `게시물 삭제에 실패했습니다: ${err.message}`);
@@ -88,8 +118,8 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
   };
 
   const handleDeletionComplete = () => {
-    setIsDeleteCompleteModalVisible(false); // 삭제 완료 모달 닫기
-    navigation.goBack(); // 이전 화면으로 돌아가기
+    setIsDeleteCompleteModalVisible(false);
+    navigation.goBack();
   };
 
 
@@ -180,6 +210,16 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
         message="게시물이 성공적으로 삭제되었습니다."
         onClose={handleDeletionComplete}
         confirmText="확인"
+      />
+
+      {/* 게시물 수정 모달 */}
+      <WriteModal
+        visible={isEditModalVisible}
+        onClose={() => setIsEditModalVisible(false)}
+        onSave={handleUpdatePost} // 업데이트 함수 연결
+        initialTitle={post.title}
+        initialDescription={post.content}
+        initialImageUri={post.image_url || undefined}
       />
     </ScrollView>
   );
