@@ -39,7 +39,7 @@ export function TabTwoScreen() {
           const parts = storedAdminDong.split(' ');
           if (parts.length >= 2) {
             // 첫 번째 부분(시/도)을 제외하고 나머지를 다시 조인합니다.
-            setCurrentAdminDong(parts.slice(1).join(' '));
+            setCurrentAdminDong(parts[1]);
           } else {
             // 예상치 못한 형식일 경우 전체를 사용하거나 기본값 설정
             setCurrentAdminDong(storedAdminDong);
@@ -108,7 +108,7 @@ export function TabTwoScreen() {
 
       const parts = updateRes.adminDong.split(' ');
       if (parts.length >= 2) {
-        setCurrentAdminDong(parts.slice(1).join(' '));
+        setCurrentAdminDong(parts[1]);
       } else {
         setCurrentAdminDong(updateRes.adminDong);
       }
@@ -182,7 +182,7 @@ export function TabTwoScreen() {
       <View style={styles.navContainer}>
         <View style={styles.locationInfoContainer}>
           <Text style={styles.textDong}>
-            {currentAdminDong || '위치 정보 로딩 중...'}
+            {currentAdminDong || '위치 정보 로딩 중...'} 이웃로그
           </Text>
           <TouchableOpacity
               onPress={handleLocationRefreshConfirmation}
