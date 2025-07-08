@@ -1,16 +1,13 @@
-// components/PostDetailScreen.tsx
-
 import React, { useEffect, useState } from 'react';
-import { Modal, TouchableOpacity, View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, Dimensions, Pressable, Alert } from 'react-native';
+import { Modal, TouchableOpacity, View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, Dimensions, Pressable, Alert, TextInput } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getPostById, PostByIdResponse, deletePost, updatePost } from '../../api/post';
+import { getPostById, PostByIdResponse, deletePost, updatePost, getCommentsByPostId, createComment, updateComment, deleteComment, Comment, ToggleLikePayload, toggleLike, getLikesCountByPostId, getLikeStatusForUser, LikesCountResponse, LikeStatusResponse } from '../../api/post';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { TabOneStackParamList } from '../navigation/TabOneStack';
 import { CustomConfirmModal } from './CustomConfirmModal';
-// import { CustomAlertModal } from './CustomAlertModal'; // CustomAlertModal 더 이상 필요 없음
 import { WriteModal } from './WriteModal';
 
 type PostDetailScreenRouteProp = RouteProp<TabOneStackParamList, 'PostDetail'>;
@@ -37,7 +34,6 @@ const formatRelativeTime = (dateString: string) => {
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays < 7) return `${diffDays}일 전`;
   
-  // 일주일 이상 지난 경우, 원래 날짜 형식으로 표시
   return date.toLocaleDateString('ko-KR');
 };
 
@@ -48,10 +44,21 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isDeleteConfirmModalVisible, setIsDeleteConfirmModalVisible] = useState<boolean>(false);
-  const [isDeleteCompleteModalVisible, setIsDeleteCompleteModalVisible] = useState<boolean>(false); // 이 상태는 더 이상 사용되지 않지만, 선언은 유지
   const [isEditModalVisible, setIsEditModalVisible] = useState<boolean>(false);
   const [isImageModalVisible, setIsImageModalVisible] = useState<boolean>(false);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+
+  // 댓글 관련 상태
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newCommentText, setNewCommentText] = useState<string>('');
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState<string>('');
+  const [isCommentDeleteConfirmModalVisible, setIsCommentDeleteConfirmModalVisible] = useState<boolean>(false);
+  const [commentToDeleteId, setCommentToDeleteId] = useState<number | null>(null);
+
+  // 좋아요 관련 상태
+  const [likesCount, setLikesCount] = useState<number>(0);
+  const [isLiked, setIsLiked] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchCurrentUserId = async () => {
@@ -79,9 +86,35 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
     }
   };
 
+  const fetchComments = async () => {
+    try {
+      const fetchedComments = await getCommentsByPostId(postId);
+      setComments(fetchedComments);
+    } catch (err: any) {
+      console.error("Error fetching comments:", err);
+      Alert.alert('댓글 불러오기 실패', `댓글을 불러오는 데 실패했습니다: ${err.message}`);
+    }
+  };
+
+  const fetchLikesInfo = async () => {
+    try {
+      const countResponse = await getLikesCountByPostId(postId);
+      setLikesCount(countResponse.likeCount);
+
+      if (currentUserId) {
+        const statusResponse = await getLikeStatusForUser(postId, currentUserId);
+        setIsLiked(statusResponse.liked);
+      }
+    } catch (err: any) {
+      console.error("Error fetching likes info:", err);
+    }
+  };
+
   useEffect(() => {
     fetchPostDetails();
-  }, [postId]);
+    fetchComments();
+    fetchLikesInfo();
+  }, [postId, currentUserId]); // currentUserId가 변경될 때 좋아요 상태를 다시 불러오도록 추가
 
   // 게시물 편집 모달을 띄우는 함수
   const handleEdit = () => {
@@ -131,19 +164,12 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
     }
     try {
       await deletePost({ id: post.id, userId: currentUserId });
-      // setIsDeleteCompleteModalVisible(true); // 이 줄을 제거하여 삭제 완료 모달을 띄우지 않습니다.
-      navigation.goBack(); // 삭제 성공 시 바로 이전 화면으로 이동
+      navigation.goBack();
     } catch (err: any) {
       console.error("게시물 삭제 실패:", err);
       Alert.alert('삭제 실패', `게시물 삭제에 실패했습니다: ${err.message}`);
     }
   };
-
-  // 삭제 완료 후 이전 화면으로 돌아가는 함수 (더 이상 직접 호출되지 않으므로 필요 없음)
-  // const handleDeletionComplete = () => {
-  //   setIsDeleteCompleteModalVisible(false);
-  //   navigation.goBack();
-  // };
 
   // 이미지 클릭 시 전체 화면 모달을 띄우는 함수
   const handleImagePress = (uri: string) => {
@@ -156,6 +182,95 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
     setIsImageModalVisible(false);
     setSelectedImageUri(null);
   };
+
+  // 댓글 작성
+  const handleCreateComment = async () => {
+    if (!currentUserId) {
+      Alert.alert('오류', '로그인된 사용자 정보가 없습니다.');
+      return;
+    }
+    if (newCommentText.trim() === '') {
+      Alert.alert('알림', '댓글 내용을 입력해주세요.');
+      return;
+    }
+    try {
+      await createComment(postId, { userId: currentUserId, content: newCommentText });
+      setNewCommentText('');
+      fetchComments(); // 댓글 목록 새로고침
+    } catch (err: any) {
+      console.error("댓글 작성 실패:", err);
+      Alert.alert('댓글 작성 실패', `댓글 작성에 실패했습니다: ${err.message}`);
+    }
+  };
+
+  // 댓글 수정 시작
+  const handleEditComment = (comment: Comment) => {
+    setEditingCommentId(comment.id);
+    setEditingCommentText(comment.content);
+  };
+
+  // 댓글 수정 완료
+  const handleUpdateComment = async (commentId: number) => {
+    if (!currentUserId) {
+      Alert.alert('오류', '로그인된 사용자 정보가 없습니다.');
+      return;
+    }
+    if (editingCommentText.trim() === '') {
+      Alert.alert('알림', '댓글 내용을 입력해주세요.');
+      return;
+    }
+    try {
+      await updateComment(commentId, { userId: currentUserId, content: editingCommentText });
+      setEditingCommentId(null);
+      setEditingCommentText('');
+      fetchComments(); // 댓글 목록 새로고침
+    } catch (err: any) {
+      console.error("댓글 수정 실패:", err);
+      Alert.alert('댓글 수정 실패', `댓글 수정에 실패했습니다: ${err.message}`);
+    }
+  };
+
+  // 댓글 삭제 확인 모달 띄우기
+  const handleDeleteCommentPress = (commentId: number) => {
+    setCommentToDeleteId(commentId);
+    setIsCommentDeleteConfirmModalVisible(true);
+  };
+
+  // 댓글 삭제
+  const confirmDeleteComment = async () => {
+    setIsCommentDeleteConfirmModalVisible(false);
+    if (!currentUserId || commentToDeleteId === null) {
+      Alert.alert('오류', '사용자 정보 또는 삭제할 댓글 정보가 없습니다.');
+      return;
+    }
+    try {
+      await deleteComment(commentToDeleteId, { userId: currentUserId });
+      setCommentToDeleteId(null);
+      fetchComments(); // 댓글 목록 새로고침
+    } catch (err: any) {
+      console.error("댓글 삭제 실패:", err);
+      Alert.alert('댓글 삭제 실패', `댓글 삭제에 실패했습니다: ${err.message}`);
+    }
+  };
+
+  // 좋아요 토글
+  const handleToggleLike = async () => {
+    if (!currentUserId) {
+      Alert.alert('알림', '로그인이 필요합니다.');
+      return;
+    }
+    try {
+      const payload: ToggleLikePayload = { userId: currentUserId };
+      const response = await toggleLike(postId, payload);
+      setIsLiked(response.liked);
+      // 좋아요 수 즉시 업데이트 ( optimistic update 또는 재조회)
+      fetchLikesInfo(); 
+    } catch (err: any) {
+      console.error("좋아요 토글 실패:", err);
+      Alert.alert('좋아요 오류', `좋아요 처리 중 오류가 발생했습니다: ${err.message}`);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -183,8 +298,6 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
   }
 
   const isMyPost = currentUserId === post.user_id;
-  console.log("Current User ID:", currentUserId);
-  console.log("Post User ID:", post.user_id);
 
   return (
     <ScrollView style={styles.container}>
@@ -210,6 +323,14 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
 
           <Text style={styles.content}>{post.content}</Text>
           
+          {/* 좋아요 버튼 및 카운트 */}
+          <View style={styles.likesContainer}>
+            <TouchableOpacity onPress={handleToggleLike} style={styles.likeButton}>
+              <Ionicons name={isLiked ? "heart" : "heart-outline"} size={24} color={isLiked ? "red" : "#666"} />
+              <Text style={styles.likeCount}>{likesCount}</Text>
+            </TouchableOpacity>
+          </View>
+
           {isMyPost && ( // 내 게시물인 경우에만 편집/삭제 버튼 표시
             <View style={styles.buttonContainer}>
               <Pressable
@@ -220,7 +341,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
                 ]}
               >
                 <Image
-                  source={require('../../assets/icons/edit.png')} // 아이콘 경로 확인 필요
+                  source={require('../../assets/icons/edit.png')}
                   style={styles.icon}
                 />
               </Pressable>
@@ -232,13 +353,76 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
                 ]}
               >
                 <Image
-                  source={require('../../assets/icons/trashcan.png')} // 아이콘 경로 확인 필요
+                  source={require('../../assets/icons/trashcan.png')}
                   style={styles.icon}
                 />
               </Pressable>
             </View>
           )}
         </View>
+
+        {/* 댓글 섹션 */}
+        <View style={styles.commentsSection}>
+          <Text style={styles.commentsTitle}>댓글 ({comments.length})</Text>
+          <View style={styles.commentInputContainer}>
+            <TextInput
+              style={styles.commentInput}
+              placeholder="댓글을 입력하세요..."
+              multiline
+              value={newCommentText}
+              onChangeText={setNewCommentText}
+            />
+            <TouchableOpacity style={styles.submitCommentButton} onPress={handleCreateComment}>
+              <Text style={styles.submitCommentButtonText}>작성</Text>
+            </TouchableOpacity>
+          </View>
+
+          {comments.length === 0 ? (
+            <Text style={styles.noCommentsText}>아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</Text>
+          ) : (
+            comments.map((comment) => (
+              <View key={comment.id} style={styles.commentItem}>
+                <View style={styles.commentHeader}>
+                  <Text style={styles.commentNickname}>{comment.nickname}</Text>
+                  <Text style={styles.commentTime}>{formatRelativeTime(comment.created_at)}</Text>
+                </View>
+                {editingCommentId === comment.id ? (
+                  <View style={styles.editingCommentContainer}>
+                    <TextInput
+                      style={styles.editingCommentInput}
+                      value={editingCommentText}
+                      onChangeText={setEditingCommentText}
+                      multiline
+                    />
+                    <View style={styles.editingCommentButtons}>
+                      <TouchableOpacity style={styles.editSaveButton} onPress={() => handleUpdateComment(comment.id)}>
+                        <Text style={styles.editSaveButtonText}>저장</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.editCancelButton} onPress={() => setEditingCommentId(null)}>
+                        <Text style={styles.editCancelButtonText}>취소</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <Text style={styles.commentContent}>{comment.content}</Text>
+                )}
+                
+                {currentUserId === comment.user_id && editingCommentId !== comment.id && (
+                  <View style={styles.commentActions}>
+                    <TouchableOpacity onPress={() => handleEditComment(comment)}>
+                      <Text style={styles.commentActionText}>수정</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.actionSeparator}>|</Text>
+                    <TouchableOpacity onPress={() => handleDeleteCommentPress(comment.id)}>
+                      <Text style={styles.commentActionText}>삭제</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            ))
+          )}
+        </View>
+
 
         <Modal
           visible={isImageModalVisible}
@@ -271,20 +455,22 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
           cancelText="취소"
         />
 
-        {/* 게시물 삭제 완료 알림 모달 (더 이상 렌더링하지 않음) */}
-        {/* <CustomAlertModal
-          isVisible={isDeleteCompleteModalVisible}
-          title="삭제 완료"
-          message="게시물이 성공적으로 삭제되었습니다."
-          onClose={handleDeletionComplete}
-          confirmText="확인"
-        /> */}
+        {/* 댓글 삭제 확인 모달 */}
+        <CustomConfirmModal
+          isVisible={isCommentDeleteConfirmModalVisible}
+          title="댓글을 삭제할까요?"
+          message="삭제된 댓글은 복구할 수 없습니다."
+          onCancel={() => setIsCommentDeleteConfirmModalVisible(false)}
+          onConfirm={confirmDeleteComment}
+          confirmText="삭제"
+          cancelText="취소"
+        />
 
         {/* 게시물 수정 모달 */}
         <WriteModal
           visible={isEditModalVisible}
           onClose={() => setIsEditModalVisible(false)}
-          onSave={handleUpdatePost} // 수정된 시그니처의 함수 연결
+          onSave={handleUpdatePost}
           initialTitle={post.title}
           initialDescription={post.content}
           initialImageUri={post.image_url || undefined}
@@ -324,7 +510,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: 20,
     marginHorizontal: 5,
-    minHeight: height * 0.3, // 약 5줄 정도의 텍스트가 들어갈 수 있도록 조정
+    minHeight: height * 0.3,
   },
   title: {
     fontSize: 26,
@@ -336,13 +522,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 26,
     color: '#444',
-    marginBottom: 50, // 버튼과 콘텐츠 사이 간격 유지
+    marginBottom: 50,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: 20,
-    borderTopWidth: StyleSheet.hairlineWidth, // 구분선 두께 통일
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#eee',
     paddingTop: 15,
     paddingHorizontal: 10,
@@ -361,7 +547,7 @@ const styles = StyleSheet.create({
   },
   metaInfoContainer: {
     marginBottom: 15,
-    borderBottomWidth: StyleSheet.hairlineWidth, // 구분선 두께 통일
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E0E0E0',
     paddingBottom: 10,
     alignItems: 'flex-start',
@@ -403,5 +589,155 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 1,
     padding: 10,
+  },
+  // 댓글 스타일
+  commentsSection: {
+    marginTop: 20,
+    paddingHorizontal: 20,
+    backgroundColor: '#f9f9f9',
+    paddingTop: 15,
+    borderRadius: 15,
+    marginHorizontal: 5,
+    marginBottom: 20,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#eee',
+  },
+  commentsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  commentInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    paddingRight: 10,
+    backgroundColor: '#fff',
+  },
+  commentInput: {
+    flex: 1,
+    padding: 10,
+    minHeight: 50,
+    fontSize: 16,
+    color: '#555',
+  },
+  submitCommentButton: {
+    backgroundColor: '#f4511e',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+  },
+  submitCommentButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  commentItem: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#eee',
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  commentNickname: {
+    fontWeight: 'bold',
+    fontSize: 15,
+    color: '#333',
+  },
+  commentTime: {
+    fontSize: 13,
+    color: '#888',
+  },
+  commentContent: {
+    fontSize: 16,
+    color: '#555',
+    lineHeight: 22,
+  },
+  noCommentsText: {
+    textAlign: 'center',
+    color: '#777',
+    fontSize: 15,
+    paddingVertical: 20,
+  },
+  commentActions: {
+    flexDirection: 'row',
+    marginTop: 10,
+    justifyContent: 'flex-end',
+  },
+  commentActionText: {
+    fontSize: 13,
+    color: '#666',
+    marginLeft: 10,
+  },
+  actionSeparator: {
+    fontSize: 13,
+    color: '#ccc',
+    marginHorizontal: 5,
+  },
+  editingCommentContainer: {
+    marginTop: 5,
+  },
+  editingCommentInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+    minHeight: 60,
+    marginBottom: 10,
+  },
+  editingCommentButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  editSaveButton: {
+    backgroundColor: '#f4511e',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    marginLeft: 10,
+  },
+  editSaveButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  editCancelButton: {
+    backgroundColor: '#ccc',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    marginLeft: 10,
+  },
+  editCancelButtonText: {
+    color: '#333',
+    fontWeight: 'bold',
+  },
+  likesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#eee',
+  },
+  likeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 5,
+  },
+  likeCount: {
+    marginLeft: 5,
+    fontSize: 16,
+    color: '#666',
   },
 });
