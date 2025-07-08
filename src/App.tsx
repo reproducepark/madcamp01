@@ -3,8 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
+import { Text, View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location'; // expo-location 임포트 추가
 
 import { TabOneNavigator } from './navigation/TabOneStack';
 import { TabTwoNavigator } from './navigation/TabTwoStack';
@@ -36,6 +37,8 @@ export default function App() {
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       try {
+        await requestLocationPermission();
+
         const userID = await AsyncStorage.getItem('userID');
 
         if (userID === null) {
@@ -54,6 +57,24 @@ export default function App() {
 
     checkOnboardingStatus();
   }, []);
+
+  const requestLocationPermission = async () => {
+    console.log('위치 권한 요청 시작...');
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      console.log('위치 권한 거부됨:', status);
+      Alert.alert(
+        '위치 권한 필요',
+        '이 앱은 지도 기능을 위해 위치 권한이 필요합니다. 설정에서 권한을 허용해주세요.',
+        [
+          { text: '확인', onPress: () => console.log('위치 권한 거부됨') },
+        ]
+      );
+      return false;
+    }
+    console.log('위치 권한 허용됨');
+    return true;
+  };
 
   const handleOnboardingComplete = async (user: OnboardResponse) => {
     try {

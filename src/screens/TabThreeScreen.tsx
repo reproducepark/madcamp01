@@ -24,15 +24,6 @@ export function TabThreeScreen() {
   // 초기 위치 설정 로직
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', '위치 접근 권한이 필요합니다.');
-        const defaultRegion = { latitude: 36.3504, longitude: 127.3845, latitudeDelta: 0.0922, longitudeDelta: 0.0421 };
-        setInitialMapRegion(defaultRegion);
-        setCurrentRegion(defaultRegion);
-        return;
-      }
-
       try {
         const { coords } = await Location.getCurrentPositionAsync({});
         const regionData = { latitude: coords.latitude, longitude: coords.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 };

@@ -41,3 +41,5 @@ yarn-error.*
 
 # archives
 archives/
+
+eas.json
