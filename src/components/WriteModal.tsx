@@ -78,15 +78,12 @@ export function WriteModal({ visible, onClose, onSave }: WriteModalProps) {
             Alert.alert('오류', '이미지 압축에 실패했습니다.');
             setImageUri(pickedImageUri); // 압축 실패 시 원본 URI 사용
         }
-    } else {
-        Alert.alert('알림', '사진 선택이 취소되었습니다.');
     }
   };
 
   // 👈 이미지 삭제(첨부 취소) 함수
   const handleDeleteImage = () => {
     setImageUri(undefined); // imageUri를 undefined로 설정하여 이미지 삭제
-    Alert.alert('알림', '사진 첨부가 취소되었습니다.');
   };
 
 

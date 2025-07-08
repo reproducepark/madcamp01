@@ -1,10 +1,9 @@
-// screens/TabOneScreen.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { Text, View, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { NearByPostsResponse, createPost, getNearbyPosts } from '../../api/post';
 import { updateUserLocation } from '../../api/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native'; // useFocusEffect 임포트 추가
+import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -13,6 +12,11 @@ import { TabOneStackParamList } from '../navigation/TabOneStack';
 
 // WriteModal 컴포넌트 임포트
 import { WriteModal } from '../components/WriteModal';
+// CustomAlertModal 임포트 추가
+import { CustomAlertModal } from '../components/CustomAlertModal';
+// CustomConfirmModal 임포트 추가 (handleLocationRefreshConfirmation에서도 사용되므로)
+import { CustomConfirmModal } from '../components/CustomConfirmModal';
+
 
 export function TabOneScreen() {
   const navigation = useNavigation<NavigationProp<TabOneStackParamList>>();
@@ -21,7 +25,12 @@ export function TabOneScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isLocationRefreshing, setIsLocationRefreshing] = useState(false);
-  const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
+  
+  // CustomConfirmModal 가시성 상태 (위치 새로고침 확인)
+  const [isLocationConfirmModalVisible, setIsLocationConfirmModalVisible] = useState(false); 
+  // CustomAlertModal 가시성 상태 (위치 새로고침 완료)
+  const [isLocationUpdateAlertVisible, setIsLocationUpdateAlertVisible] = useState(false);
+  const [locationUpdateMessage, setLocationUpdateMessage] = useState(''); // 위치 업데이트 메시지 상태
 
   const [currentAdminDong, setCurrentAdminDong] = useState<string | null>(null);
 
@@ -83,68 +92,55 @@ export function TabOneScreen() {
   );
 
   const executeLocationRefresh = useCallback(async () => {
-  setIsLocationRefreshing(true);
-  try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(
-        '위치 권한 필요',
-        '현재 위치를 새로고침하려면 위치 권한이 필요합니다. 앱 설정에서 권한을 허용해주세요.'
-      );
-      return;
+    setIsLocationRefreshing(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          '위치 권한 필요',
+          '현재 위치를 새로고침하려면 위치 권한이 필요합니다. 앱 설정에서 권한을 허용해주세요.'
+        );
+        return;
+      }
+
+      const { coords } = await Location.getCurrentPositionAsync({});
+      const userID = await AsyncStorage.getItem('userID');
+
+      if (!userID) {
+        Alert.alert('오류', '사용자 ID를 찾을 수 없습니다. 로그인이 필요합니다.');
+        return;
+      }
+
+      const updateRes = await updateUserLocation({ userId: userID, lat: coords.latitude, lon: coords.longitude });
+
+      const parts = updateRes.adminDong.split(' ');
+      if (parts.length >= 2) {
+        setCurrentAdminDong(parts.slice(1).join(' '));
+      } else {
+        setCurrentAdminDong(updateRes.adminDong);
+      }
+      await AsyncStorage.setItem('userLat', String(coords.latitude));
+      await AsyncStorage.setItem('userLon', String(coords.longitude));
+      await AsyncStorage.setItem('userAdminDong', updateRes.adminDong);
+
+      // CustomAlertModal 사용
+      setLocationUpdateMessage(`위치 정보가 '${updateRes.adminDong}'으로 업데이트 되었습니다.`);
+      setIsLocationUpdateAlertVisible(true);
+      // Alert.alert('알림', `위치 정보가 '${updateRes.adminDong}'으로 업데이트되었습니다.`); // 기존 Alert 제거
+
+      fetchPosts();
+    } catch (e: any) {
+      console.error('위치 새로고침 오류:', e);
+      Alert.alert('오류', '위치 정보를 새로고침하는 데 실패했습니다: ' + e.message);
+    } finally {
+      setIsLocationRefreshing(false);
     }
+  }, [fetchPosts]);
 
-    const { coords } = await Location.getCurrentPositionAsync({});
-    const userID = await AsyncStorage.getItem('userID');
-
-    if (!userID) {
-      Alert.alert('오류', '사용자 ID를 찾을 수 없습니다. 로그인이 필요합니다.');
-      return;
-    }
-
-    const updateRes = await updateUserLocation({ userId: userID, lat: coords.latitude, lon: coords.longitude });
-
-    const parts = updateRes.adminDong.split(' ');
-    if (parts.length >= 2) {
-      setCurrentAdminDong(parts.slice(1).join(' '));
-    } else {
-      setCurrentAdminDong(updateRes.adminDong);
-    }
-    await AsyncStorage.setItem('userLat', String(coords.latitude));
-    await AsyncStorage.setItem('userLon', String(coords.longitude));
-    await AsyncStorage.setItem('userAdminDong', updateRes.adminDong);
-
-    Alert.alert('알림', `위치 정보가 '${updateRes.adminDong}'으로 업데이트되었습니다.`);
-    fetchPosts();
-  } catch (e: any) {
-    console.error('위치 새로고침 오류:', e);
-    Alert.alert('오류', '위치 정보를 새로고침하는 데 실패했습니다: ' + e.message);
-  } finally {
-    setIsLocationRefreshing(false);
-  }
-}, [fetchPosts]);
-
+  // handleLocationRefreshConfirmation에서 CustomConfirmModal 사용으로 변경
   const handleLocationRefreshConfirmation = useCallback(() => {
-    Alert.alert(
-      '위치 정보 새로고침',
-      '현재 위치 정보를 새로고침하시겠습니까?',
-      [
-        {
-          text: '취소',
-          onPress: () => setIsConfirmModalVisible(false),
-          style: 'cancel',
-        },
-        {
-          text: '확인',
-          onPress: () => {
-            setIsConfirmModalVisible(false);
-            executeLocationRefresh();
-          },
-        },
-      ],
-      { cancelable: true }
-    );
-  }, [executeLocationRefresh]);
+    setIsLocationConfirmModalVisible(true);
+  }, []);
 
   const handleMyPagePress = useCallback(() => {
     navigation.navigate('MyPage');
@@ -160,11 +156,11 @@ export function TabOneScreen() {
     navigation.setOptions({
       headerRight: () => (
         <View style={styles.headerRightContainer}>
-
+          {/* 상단 헤더의 새로고침 버튼은 기존 Alert 대신 즉시 실행되도록 유지 (또는 CustomConfirmModal 사용 고려) */}
           <TouchableOpacity
-          onPress={executeLocationRefresh}
-          style={styles.headerButton}
-          disabled={isLocationRefreshing}
+            onPress={executeLocationRefresh} // 이 버튼은 바로 새로고침 실행
+            style={styles.headerButton}
+            disabled={isLocationRefreshing}
           >
             {isLocationRefreshing ? (
               <ActivityIndicator size="small" color="#f4511e" />
@@ -245,7 +241,7 @@ export function TabOneScreen() {
         
           </Text>
           <TouchableOpacity
-              onPress={handleLocationRefreshConfirmation}
+              onPress={handleLocationRefreshConfirmation} // CustomConfirmModal을 띄우도록 변경
               style={styles.inlineRefreshButton}
               disabled={isLocationRefreshing}
             >
@@ -303,6 +299,29 @@ export function TabOneScreen() {
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
           onSave={handleAddItem}
+        />
+
+        {/* 위치 새로고침 확인을 위한 CustomConfirmModal */}
+        <CustomConfirmModal
+          isVisible={isLocationConfirmModalVisible}
+          title="위치 정보 새로고침"
+          message="현재 위치 정보를 새로고침하시겠습니까?"
+          onCancel={() => setIsLocationConfirmModalVisible(false)}
+          onConfirm={() => {
+            setIsLocationConfirmModalVisible(false); // 확인 후 모달 닫기
+            executeLocationRefresh(); // 위치 새로고침 실행
+          }}
+          confirmText="확인"
+          cancelText="취소"
+        />
+
+        {/* 위치 업데이트 완료를 위한 CustomAlertModal */}
+        <CustomAlertModal
+          isVisible={isLocationUpdateAlertVisible}
+          title="위치 업데이트 완료"
+          message={locationUpdateMessage} // 동적으로 메시지 전달
+          onClose={() => setIsLocationUpdateAlertVisible(false)} // 모달 닫기
+          confirmText="확인"
         />
       </View>
     </SafeAreaView>
