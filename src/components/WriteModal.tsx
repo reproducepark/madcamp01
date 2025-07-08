@@ -8,14 +8,13 @@ import {
   SafeAreaView,
   StyleSheet,
   Platform,
-  // Alert, // ✨ Alert는 더 이상 필요 없으니 주석 처리하거나 제거합니다.
   TouchableWithoutFeedback,
   Keyboard,
   Image
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { CustomAlertModal } from './CustomAlertModal'; // ✨ CustomAlertModal 임포트
+import { CustomAlertModal } from './CustomAlertModal';
 
 interface WriteModalProps {
   visible: boolean;
@@ -32,26 +31,22 @@ export function WriteModal({ visible, onClose, onSave, initialTitle, initialDesc
   const [imageUri, setImageUri] = useState<string | undefined>(undefined);
   const [originalImageUri, setOriginalImageUri] = useState<string | undefined>(undefined);
 
-  // ✨ CustomAlertModal 관련 상태 추가
   const [isAlertVisible, setIsAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
 
-  // visible이 true가 될 때마다 초기값으로 상태를 설정
   useEffect(() => {
     if (visible) {
       setNewTitle(initialTitle || '');
       setNewDescription(initialDescription || '');
       setImageUri(initialImageUri || undefined);
       setOriginalImageUri(initialImageUri || undefined);
-      // 모달이 열릴 때 알림 상태 초기화
       setIsAlertVisible(false);
       setAlertTitle('');
       setAlertMessage('');
     }
   }, [visible, initialTitle, initialDescription, initialImageUri]);
 
-  // ✨ CustomAlertModal을 띄우는 헬퍼 함수
   const showAlert = (title: string, message: string) => {
     setAlertTitle(title);
     setAlertMessage(message);
@@ -60,7 +55,7 @@ export function WriteModal({ visible, onClose, onSave, initialTitle, initialDesc
 
   const handleSave = () => {
     if (newTitle.trim() === '' || newDescription.trim() === '') {
-      showAlert('알림', '제목과 내용을 모두 입력해야 해요.'); // ✨ CustomAlertModal 사용
+      showAlert('알림', '제목과 내용을 모두 입력해야 해요.');
       return;
     }
 
@@ -92,7 +87,7 @@ export function WriteModal({ visible, onClose, onSave, initialTitle, initialDesc
         showAlert(
         '권한 필요',
         '사진을 선택하려면 미디어 라이브러리 접근 권한이 필요합니다.'
-        ); // ✨ CustomAlertModal 사용
+        );
         return;
     }
 
@@ -111,13 +106,13 @@ export function WriteModal({ visible, onClose, onSave, initialTitle, initialDesc
               { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
             );
             console.log('압축된 이미지 URI:', manipResult.uri);
-            // ✨ CustomAlertModal 사용
-            showAlert('사진 첨부', `사진이 압축 및 선택되었습니다: ${manipResult.uri.substring(0, 30)}...`);
+            // ✨ 기존 showAlert 호출 제거
+            // showAlert('사진 첨부', `사진이 압축 및 선택되었습니다: ${manipResult.uri.substring(0, 30)}...`);
             setImageUri(manipResult.uri);
         } catch (error) {
             console.error("이미지 압축 중 오류 발생:", error);
-            showAlert('오류', '이미지 압축에 실패했습니다.'); // ✨ CustomAlertModal 사용
-            setImageUri(pickedImageUri);
+            showAlert('오류', '이미지 압축에 실패했습니다.');
+            setImageUri(pickedImageUri); // 압축 실패 시 원본 URI를 사용 (선택 사항)
         }
     }
   };
@@ -181,12 +176,11 @@ export function WriteModal({ visible, onClose, onSave, initialTitle, initialDesc
         </SafeAreaView>
       </TouchableWithoutFeedback>
 
-      {/* ✨ CustomAlertModal 추가 */}
       <CustomAlertModal
         isVisible={isAlertVisible}
         title={alertTitle}
         message={alertMessage}
-        onClose={() => setIsAlertVisible(false)} // 모달 닫기
+        onClose={() => setIsAlertVisible(false)}
       />
     </Modal>
   );
