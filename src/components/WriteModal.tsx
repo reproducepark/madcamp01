@@ -106,13 +106,11 @@ export function WriteModal({ visible, onClose, onSave, initialTitle, initialDesc
               { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
             );
             console.log('압축된 이미지 URI:', manipResult.uri);
-            // ✨ 기존 showAlert 호출 제거
-            // showAlert('사진 첨부', `사진이 압축 및 선택되었습니다: ${manipResult.uri.substring(0, 30)}...`);
             setImageUri(manipResult.uri);
         } catch (error) {
             console.error("이미지 압축 중 오류 발생:", error);
             showAlert('오류', '이미지 압축에 실패했습니다.');
-            setImageUri(pickedImageUri); // 압축 실패 시 원본 URI를 사용 (선택 사항)
+            setImageUri(pickedImageUri);
         }
     }
   };
@@ -131,8 +129,12 @@ export function WriteModal({ visible, onClose, onSave, initialTitle, initialDesc
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <SafeAreaView style={styles.fullScreenModalContainer}>
           <View style={styles.modalHeader}>
+            {/* 닫기 버튼을 Image 컴포넌트로 변경 및 크기 조정 */}
             <TouchableOpacity onPress={handleCancel} style={styles.headerButton}>
-              <Text style={styles.headerButtonText}>X</Text>
+              <Image 
+                source={require('../../assets/icons/close.png')} 
+                style={styles.closeIcon} 
+              />
             </TouchableOpacity>
             <TouchableOpacity onPress={handleSave} style={styles.headerButton}>
               <Text style={styles.headerButtonText}>완료</Text>
@@ -161,8 +163,12 @@ export function WriteModal({ visible, onClose, onSave, initialTitle, initialDesc
                   source={{ uri: imageUri }}
                   style={styles.previewImage}
                 />
+                {/* 이미지 삭제 버튼을 Image 컴포넌트로 변경 및 크기 조정 */}
                 <TouchableOpacity onPress={handleDeleteImage} style={styles.deleteImageButton}>
-                  <Text style={styles.deleteImageButtonText}>X</Text>
+                  <Image
+                    source={require('../../assets/icons/close.png')}
+                    style={styles.deleteImageIcon}
+                  />
                 </TouchableOpacity>
               </View>
             )}
@@ -213,6 +219,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#f4511e',
     fontWeight: 'bold',
+  },
+  closeIcon: {
+    width: 15, // 아이콘 크기 조절 (줄임)
+    height: 15, // 아이콘 크기 조절 (줄임)
+    tintColor: '#333', // 아이콘 색상 조절
   },
   modalBody: {
     flex: 1,
@@ -274,9 +285,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  deleteImageButtonText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
+  // 새로 추가된 이미지 삭제 아이콘 스타일
+  deleteImageIcon: {
+    width: 10, // 아이콘 크기 조절 (줄임)
+    height: 10, // 아이콘 크기 조절 (줄임)
+    tintColor: 'white', // 흰색으로 설정하여 배경색과 대비
   },
 });
