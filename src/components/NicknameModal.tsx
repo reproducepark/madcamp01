@@ -8,44 +8,69 @@ import {
   StyleSheet,
   Platform,
   SafeAreaView,
-  Alert, // Make sure Alert is imported
+  Alert,
 } from 'react-native';
+import { checkNicknameAvailability } from '../../api/user'; // checkNicknameAvailability 임포트
 
 interface NicknameModalProps {
-  isVisible: boolean; // Controls modal visibility
-  onClose: () => void; // Function to call when modal close is requested
-  onSubmit: (nickname: string) => void; // Function to call when nickname is submitted
+  isVisible: boolean;
+  onClose: () => void;
+  onSubmit: (nickname: string) => void;
 }
 
 const NicknameModal: React.FC<NicknameModalProps> = ({ isVisible, onClose, onSubmit }) => {
-  const [nickname, setNickname] = useState(''); // State for nickname input
+  const [nickname, setNickname] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // 닉네임 확인 중 로딩 상태
 
-  // Handles the submission of the nickname
-  const handleSubmit = () => {
-    if (nickname.trim().length > 0) {
-      onSubmit(nickname.trim()); // Submit trimmed nickname
-      setNickname(''); // Clear input field after submission
-    } else {
-      // Use Alert for user feedback if nickname is empty
+  const handleSubmit = async () => {
+    const trimmedNickname = nickname.trim();
+
+    if (trimmedNickname.length === 0) {
       Alert.alert('알림', '닉네임을 입력해주세요.');
+      return;
+    }
+
+    // 닉네임 길이 제한 (옵션: 필요에 따라 추가)
+    if (trimmedNickname.length < 2 || trimmedNickname.length > 15) {
+      Alert.alert('알림', '닉네임은 2자 이상 15자 이하로 입력해주세요.');
+      return;
+    }
+
+    setIsLoading(true); // 로딩 시작
+
+    try {
+      const response = await checkNicknameAvailability(trimmedNickname);
+
+      if (response.isAvailable) {
+        // 닉네임 사용 가능
+        onSubmit(trimmedNickname);
+        setNickname(''); // 제출 후 입력 필드 초기화
+      } else {
+        // 닉네임 중복 또는 사용 불가능
+        Alert.alert('닉네임 오류', response.message || '이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해주세요.');
+        // 닉네임 입력 필드를 비우지 않고 사용자가 다시 입력할 수 있도록 유지
+      }
+    } catch (error) {
+      console.error('닉네임 중복 확인 에러:', error);
+      Alert.alert('오류', '닉네임 확인 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsLoading(false); // 로딩 종료
     }
   };
 
-  // Handles the cancellation of the nickname input
   const handleCancel = () => {
-    setNickname(''); // Clear input on cancel
-    onClose(); // Close the modal
+    setNickname('');
+    onClose();
   };
 
   return (
     <Modal
-      animationType="slide" // Slide animation for a full-screen feel
-      transparent={false} // Modal is not transparent
-      visible={isVisible} // Controls the current visibility of the modal
-      onRequestClose={handleCancel} // Callback for when the user requests to close the modal (e.g., Android back button)
+      animationType="slide"
+      transparent={false}
+      visible={isVisible}
+      onRequestClose={handleCancel}
     >
       <SafeAreaView style={styles.fullScreenModalContainer}>
-        {/* Header Section: Contains Cancel, Title, and Done buttons */}
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={handleCancel} style={styles.headerButton}>
             <Text style={styles.headerButtonText}>취소</Text>
@@ -54,20 +79,20 @@ const NicknameModal: React.FC<NicknameModalProps> = ({ isVisible, onClose, onSub
           <TouchableOpacity
             onPress={handleSubmit}
             style={styles.headerButton}
-            disabled={nickname.trim().length === 0} // Disable '완료' button if nickname is empty
+            // 닉네임이 비어있거나 로딩 중일 때 '완료' 버튼 비활성화
+            disabled={nickname.trim().length === 0 || isLoading}
           >
             <Text
               style={[
                 styles.headerButtonText,
-                nickname.trim().length === 0 && styles.disabledButtonText, // Apply disabled style
+                (nickname.trim().length === 0 || isLoading) && styles.disabledButtonText,
               ]}
             >
-              완료
+              {isLoading ? '확인 중...' : '완료'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Body Section for Input */}
         <View style={styles.modalBody}>
           <Text style={styles.inputDescription}>
             앱에서 사용할 닉네임을 입력해주세요.
@@ -78,9 +103,10 @@ const NicknameModal: React.FC<NicknameModalProps> = ({ isVisible, onClose, onSub
             placeholderTextColor="#999"
             value={nickname}
             onChangeText={setNickname}
-            maxLength={15} // Limit nickname length
-            autoCapitalize="none" // Disable auto-capitalization
-            autoCorrect={false} // Disable auto-correction
+            maxLength={15}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!isLoading} // 로딩 중에는 입력 비활성화
           />
         </View>
       </SafeAreaView>
@@ -91,8 +117,8 @@ const NicknameModal: React.FC<NicknameModalProps> = ({ isVisible, onClose, onSub
 const styles = StyleSheet.create({
   fullScreenModalContainer: {
     flex: 1,
-    backgroundColor: 'white', // Full screen background
-    paddingTop: Platform.OS === 'android' ? 25 : 0, // Adjust for Android status bar
+    backgroundColor: 'white',
+    paddingTop: Platform.OS === 'android' ? 25 : 0,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -113,14 +139,14 @@ const styles = StyleSheet.create({
   },
   headerButtonText: {
     fontSize: 18,
-    color: '#f4511e', // Action button color
+    color: '#f4511e',
     fontWeight: 'bold',
   },
   disabledButtonText: {
-    color: '#ccc', // Lighter color for disabled button text
+    color: '#ccc',
   },
   modalBody: {
-    flex: 1, // Takes up available space
+    flex: 1,
     padding: 15,
   },
   inputDescription: {

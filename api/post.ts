@@ -1,6 +1,5 @@
 //api/post.ts
 
-import axios from 'axios';
 import { BASE_URL } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -30,7 +29,6 @@ export interface OnboardResponse {
   adminDong: string;
   lat: number;
   lon: number;
-  // 그 외 프로필 필드가 더 있다면 여기에 추가
 }
 
 export interface NewPostResponse {

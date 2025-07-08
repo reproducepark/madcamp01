@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { BASE_URL } from '@env';
 
 export interface User {
@@ -13,43 +12,69 @@ export interface OnboardResponse {
     adminDong: string;
     lat: number;
     lon: number;
-  // 그 외 프로필 필드가 더 있다면 여기에 추가
 }
 
-// nickname으로 조회하는 api 필요
-// export async function getUserByNickname(nickname: string): Promise<OnboardResponse> {
-//   const res = await axios.get<OnboardResponse>(
-//     `${BASE_URL}/api/auth/user`, 
-//     { params: { nickname } }
-//   );
-//   return res.data;
-// }
+export interface CheckNicknameResponse {
+    isAvailable: boolean;
+    message: string;
+}
 
-export async function createUser(user:User){
-    let userId=null;
-    let adminDong=null;
-
+export async function createUser(user: User): Promise<OnboardResponse> {
     try {
-        console.log('온보딩 요청:',user);
-        console.log('온보딩 요청 URL:',`${BASE_URL}/auth/onboard`);
-        const onboardRes= await axios.post(`${BASE_URL}/auth/onboard`, user);
-        console.log('온보딩 응담:',onboardRes.data);
+        console.log('온보딩 요청:', user);
+        console.log('온보딩 요청 URL (Fetch):', `${BASE_URL}/auth/onboard`);
 
-        return onboardRes.data;
+        const response = await fetch(`${BASE_URL}/auth/onboard`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(user),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            const errorMessage = errorData.message || `HTTP 에러! 상태: ${response.status}`;
+            throw new Error(errorMessage);
+        }
+
+        const onboardResData: OnboardResponse = await response.json();
+        console.log('온보딩 응답 (Fetch):', onboardResData);
+
+        return onboardResData;
 
     } catch (e: any) {
+        console.error('온보딩 에러 (Fetch):', e.message);
         
-        const message = e.response?.data?.message || e.message;
-        console.error('온보딩 에러',message);
-
-    };
-    
-
-    
-
+        throw new Error(e.message || '알 수 없는 오류가 발생했습니다.');
+    }
 };
 
+/**
+ * 닉네임 사용 가능 여부를 확인합니다. (Fetch API 사용)
+ * @param nickname 확인할 닉네임
+ * @returns 닉네임 사용 가능 여부 및 메시지를 포함하는 객체
+ */
+export async function checkNicknameAvailability(nickname: string): Promise<CheckNicknameResponse> {
+    try {
+        const url = `${BASE_URL}/auth/check-nickname?nickname=${encodeURIComponent(nickname)}`;
+        console.log(`닉네임 중복 확인 요청 URL (Fetch): ${url}`);
 
+        const response = await fetch(url);
 
+        if (!response.ok) {
+            // Check if the response is not OK (e.g., 404, 500)
+            const errorData = await response.json(); // Attempt to parse error message from body
+            const errorMessage = errorData.message || `HTTP error! status: ${response.status}`;
+            throw new Error(errorMessage);
+        }
 
-
+        const data = await response.json();
+        console.log('닉네임 중복 확인 응답 (Fetch):', data);
+        return data;
+    } catch (e: any) {
+        console.error('닉네임 중복 확인 에러 (Fetch):', e.message);
+        // Ensure a consistent return type for error cases
+        throw new Error(e.message || '닉네임 중복 확인 중 알 수 없는 오류가 발생했습니다.');
+    }
+}
