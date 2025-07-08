@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useLayoutEffect } from 'react';
-import { Modal, TouchableOpacity, View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, Dimensions, Pressable, Alert, TextInput, RefreshControl, Platform, KeyboardAvoidingView } from 'react-native'; // KeyboardAvoidingView와 Platform 임포트
+import { Modal, TouchableOpacity, View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, Dimensions, Pressable, Alert, TextInput, RefreshControl, Platform, KeyboardAvoidingView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getPostById, PostByIdResponse, deletePost, updatePost, getCommentsByPostId, createComment, updateComment, deleteComment, Comment, ToggleLikePayload, toggleLike, getLikesCountByPostId, getLikeStatusForUser, LikesCountResponse, LikeStatusResponse } from '../../api/post';
 import { RouteProp } from '@react-navigation/native';
@@ -339,10 +339,10 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
     <KeyboardAvoidingView // 전체 화면을 감싸도록 KeyboardAvoidingView 추가
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'} // iOS는 'padding', Android는 'height'가 적합
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0} // 필요에 따라 오프셋 조정 (헤더 높이 등)
+      keyboardVerticalOffset={0} // 키보드 위에 딱 붙도록 오프셋을 0으로 설정
     >
       <ScrollView 
-        style={styles.container}
+        style={styles.scrollViewContent} // 새로운 스타일 적용
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -351,8 +351,6 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
             tintColor={'#f4511e'} // iOS에서 로딩 스피너 색상
           />
         }
-        // 댓글 입력 시 키보드가 스크롤뷰 콘텐츠를 가리지 않도록 설정
-        // 이 부분은 KeyboardAvoidingView로 대부분 처리되지만, 필요에 따라 추가할 수 있습니다.
         keyboardShouldPersistTaps="handled" // 키보드가 열려 있어도 스크롤뷰 탭 가능
       >
         {post.image_url && (
@@ -418,19 +416,6 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
           {/* 댓글 섹션 */}
           <View style={styles.commentsSection}>
             <Text style={styles.commentsTitle}>댓글 ({comments.length})</Text>
-            <View style={styles.commentInputContainer}>
-              <TextInput
-                style={styles.commentInput}
-                placeholder="댓글을 입력하세요..."
-                multiline
-                value={newCommentText}
-                onChangeText={setNewCommentText}
-              />
-              <TouchableOpacity style={styles.submitCommentButton} onPress={handleCreateComment}>
-                <Text style={styles.submitCommentButtonText}>작성</Text>
-              </TouchableOpacity>
-            </View>
-
             {comments.length === 0 ? (
               <Text style={styles.noCommentsText}>아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</Text>
             ) : (
@@ -530,13 +515,31 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
             initialImageUri={post.image_url || undefined}
           />
       </ScrollView>
+
+      {/* 댓글 입력 섹션을 ScrollView 바깥에 배치 */}
+      <View style={styles.bottomCommentInputContainer}>
+        <TextInput
+          style={styles.commentInput}
+          placeholder="댓글을 입력하세요..."
+          multiline
+          value={newCommentText}
+          onChangeText={setNewCommentText}
+        />
+        <TouchableOpacity style={styles.submitCommentButton} onPress={handleCreateComment}>
+          <Text style={styles.submitCommentButtonText}>작성</Text>
+        </TouchableOpacity>
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { // 이 스타일은 이제 사용하지 않습니다.
     flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollViewContent: { // ScrollView에 적용할 새로운 스타일
+    flex: 1, // 스크롤뷰가 KeyboardAvoidingView 내에서 공간을 차지하도록
     backgroundColor: '#fff',
   },
   centered: {
@@ -565,7 +568,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: 20,
     marginHorizontal: 5,
-    minHeight: height * 0.3,
+    // minHeight: height * 0.3, // 주석 처리하거나 제거 (스크롤뷰가 알아서 높이 조절)
   },
   title: {
     fontSize: 26,
@@ -654,7 +657,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     marginHorizontal: 5,
     paddingBottom: 20,
-    marginBottom: 10,
+    marginBottom: 10, // 이 값을 줄여서 댓글 입력란과 가까이 붙일 수 있습니다.
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#eee',
   },
@@ -664,15 +667,22 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     color: '#333',
   },
-  commentInputContainer: {
+  // 기존 commentInputContainer는 이제 ScrollView 바깥으로 이동합니다.
+  // bottomCommentInputContainer가 이를 대체합니다.
+  commentInputContainer: { 
+    // 이 스타일은 더 이상 사용되지 않거나, bottomCommentInputContainer로 통합됩니다.
+    // 여기서는 삭제합니다.
+  },
+  bottomCommentInputContainer: { // 새로 추가된 댓글 입력 섹션 컨테이너
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    paddingRight: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#e0e0e0',
     backgroundColor: '#fff',
+    // 아래 margin을 0으로 설정하여 화면 하단에 딱 붙도록 합니다.
+    marginHorizontal: 0, 
   },
   commentInput: {
     flex: 1,
@@ -680,6 +690,10 @@ const styles = StyleSheet.create({
     minHeight: 50,
     fontSize: 16,
     color: '#555',
+    borderWidth: 1, // 여기에 테두리 추가
+    borderColor: '#ddd', // 테두리 색상
+    borderRadius: 10, // 모서리 둥글게
+    marginRight: 10, // 버튼과의 간격
   },
   submitCommentButton: {
     backgroundColor: '#f4511e',
