@@ -1,13 +1,13 @@
-// components/PostDetailScreen.tsx
-
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, Dimensions, Pressable, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getPostById, PostByIdResponse, deletePost } from '../../api/post'; // deletePost 임포트
+import { getPostById, PostByIdResponse, deletePost } from '../../api/post';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 import { TabOneStackParamList } from '../navigation/TabOneStack';
+import { CustomConfirmModal } from './CustomConfirmModal';
+import { CustomAlertModal } from './CustomAlertModal'; // CustomAlertModal 임포트
 
 type PostDetailScreenRouteProp = RouteProp<TabOneStackParamList, 'PostDetail'>;
 type PostDetailScreenNavigationProp = StackNavigationProp<TabOneStackParamList, 'PostDetail'>;
@@ -25,6 +25,8 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isDeleteConfirmModalVisible, setIsDeleteConfirmModalVisible] = useState<boolean>(false); // 삭제 확인 모달
+  const [isDeleteCompleteModalVisible, setIsDeleteCompleteModalVisible] = useState<boolean>(false); // 삭제 완료 모달
 
   useEffect(() => {
     const fetchCurrentUserId = async () => {
@@ -61,39 +63,35 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
     // 예: navigation.navigate('EditPost', { postId: post.id });
   };
 
-  // '삭제하기' 버튼 클릭 핸들러
-  const handleDelete = () => {
-    Alert.alert(
-      '게시물 삭제',
-      '정말로 이 게시물을 삭제하시겠습니까?',
-      [
-        {
-          text: '취소',
-          style: 'cancel',
-        },
-        {
-          text: '삭제',
-          onPress: async () => {
-            if (!post || !currentUserId) {
-              Alert.alert('오류', '게시물 정보 또는 사용자 ID가 없습니다.');
-              return;
-            }
-            try {
-              // 게시물 삭제 API 호출
-              await deletePost({ id: post.id, userId: currentUserId });
-              Alert.alert('삭제 완료', '게시물이 삭제되었습니다.');
-              navigation.goBack(); // 삭제 후 이전 화면으로 돌아가기
-            } catch (err: any) {
-              console.error("게시물 삭제 실패:", err);
-              Alert.alert('삭제 실패', `게시물 삭제에 실패했습니다: ${err.message}`);
-            }
-          },
-          style: 'destructive',
-        },
-      ],
-      { cancelable: true }
-    );
+  // '삭제하기' 버튼 클릭 핸들러: 삭제 확인 모달을 띄웁니다.
+  const handleDeletePress = () => {
+    setIsDeleteConfirmModalVisible(true);
   };
+
+  // 실제 삭제 로직
+  const confirmDelete = async () => {
+    setIsDeleteConfirmModalVisible(false); // 삭제 확인 모달 닫기
+    if (!post || !currentUserId) {
+      Alert.alert('오류', '게시물 정보 또는 사용자 ID가 없습니다.');
+      return;
+    }
+    try {
+      // 게시물 삭제 API 호출
+      await deletePost({ id: post.id, userId: currentUserId });
+      setIsDeleteCompleteModalVisible(true); // 삭제 완료 모달 표시
+      // Alert.alert('삭제 완료', '게시물이 삭제되었습니다.'); // 기존 Alert 제거
+      // navigation.goBack(); // 삭제 완료 모달이 닫힌 후 이동하도록 변경
+    } catch (err: any) {
+      console.error("게시물 삭제 실패:", err);
+      Alert.alert('삭제 실패', `게시물 삭제에 실패했습니다: ${err.message}`);
+    }
+  };
+
+  const handleDeletionComplete = () => {
+    setIsDeleteCompleteModalVisible(false); // 삭제 완료 모달 닫기
+    navigation.goBack(); // 이전 화면으로 돌아가기
+  };
+
 
   if (loading) {
     return (
@@ -151,7 +149,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
               />
             </Pressable>
             <Pressable
-              onPress={handleDelete}
+              onPress={handleDeletePress}
               style={({ pressed }) => [
                 styles.iconButton,
                 { backgroundColor: pressed ? '#d3d3d3' : 'transparent' },
@@ -165,6 +163,24 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
           </View>
         )}
       </View>
+
+      <CustomConfirmModal
+        isVisible={isDeleteConfirmModalVisible}
+        title="정말 삭제할까요?"
+        message="삭제된 글은 복구할 수 없어요."
+        onCancel={() => setIsDeleteConfirmModalVisible(false)}
+        onConfirm={confirmDelete}
+        confirmText="삭제"
+        cancelText="취소"
+      />
+
+      <CustomAlertModal
+        isVisible={isDeleteCompleteModalVisible}
+        title="삭제 완료"
+        message="게시물이 성공적으로 삭제되었습니다."
+        onClose={handleDeletionComplete}
+        confirmText="확인"
+      />
     </ScrollView>
   );
 }
