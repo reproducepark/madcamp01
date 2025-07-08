@@ -151,7 +151,7 @@ export function TabOneScreen() {
   const handleMyPagePress = useCallback(() => {
     // 'MyPage'는 네비게이션 스택에 정의된 라우트 이름이어야 합니다.
     // 필요에 따라 다른 라우트 이름으로 변경하세요.
-    // navigation.navigate('MyPage');
+    navigation.navigate('MyPage');
   }, [navigation]);
 
 

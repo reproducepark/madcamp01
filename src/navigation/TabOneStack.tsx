@@ -3,11 +3,13 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { TabOneScreen } from '../screens/TabOneScreen'; // Make sure this path is correct
 import { PostDetailScreen } from '../components/PostDetailScreen'; // Make sure this path is correct
-
+import { MyPageScreen } from '../screens/MyPage';
+ 
 // This defines the types for the screens within the '리스트' tab's stack.
 export type TabOneStackParamList = {
   TabOneInitial: undefined; // This is the starting screen for the '리스트' stack
   PostDetail: { postId: number }; // The PostDetail screen, which expects a postId
+  MyPage: undefined;
 };
 
 const TabOneStack = createStackNavigator<TabOneStackParamList>();
@@ -26,6 +28,11 @@ export function TabOneNavigator() {
         name="PostDetail"
         component={PostDetailScreen}
         options={{ title: '', headerBackTitle: '' }} // Sets the header title for the detail screen
+      />
+      <TabOneStack.Screen
+        name="MyPage"
+        component={MyPageScreen}
+        options={{title:'마이페이지'}}
       />
     </TabOneStack.Navigator>
   );
