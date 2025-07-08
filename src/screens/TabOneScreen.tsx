@@ -26,7 +26,7 @@ export function TabOneScreen() {
 
       if (!rawLat || !rawLon) {
         console.error('위치 정보 없음: 먼저 위치를 받아 와야 합니다.');
-        Alert.alert('오류', '위치 정보를 가져올 수 없습니다. 설정에서 위치 권한을 확인해주세요.');
+        // Alert.alert('오류', '위치 정보를 가져올 수 없습니다. 설정에서 위치 권한을 확인해주세요.');
         return;
       }
       const lat = Number(rawLat);

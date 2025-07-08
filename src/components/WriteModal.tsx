@@ -11,7 +11,8 @@ import {
   Platform,
   Alert,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  Image
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator'; // ImageManipulator 임포트
@@ -82,6 +83,13 @@ export function WriteModal({ visible, onClose, onSave }: WriteModalProps) {
     }
   };
 
+  // 👈 이미지 삭제(첨부 취소) 함수
+  const handleDeleteImage = () => {
+    setImageUri(undefined); // imageUri를 undefined로 설정하여 이미지 삭제
+    Alert.alert('알림', '사진 첨부가 취소되었습니다.');
+  };
+
+
   return (
     <Modal
       animationType="slide"
@@ -116,6 +124,17 @@ export function WriteModal({ visible, onClose, onSave }: WriteModalProps) {
               multiline
               textAlignVertical="top"
             />
+            {imageUri && (
+              <View style={styles.imagePreviewContainer}>
+                <Image
+                  source={{ uri: imageUri }}
+                  style={styles.previewImage}
+                />
+                <TouchableOpacity onPress={handleDeleteImage} style={styles.deleteImageButton}>
+                  <Text style={styles.deleteImageButtonText}>X</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
           <View style={styles.modalFooter}>
@@ -174,6 +193,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingVertical: 10,
   },
+  previewImage: {
+    width: 100,
+    height: 100,
+    marginTop: 10,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
   modalFooter: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
@@ -193,5 +219,26 @@ const styles = StyleSheet.create({
   attachPhotoButtonText: {
     fontSize: 14,
     color: '#333',
+  },
+  imagePreviewContainer: {
+    position: 'relative', // 자식 요소인 X 버튼을 absolute로 배치하기 위해 relative 설정
+    alignSelf: 'flex-start',
+    marginTop: 10,
+  },
+  deleteImageButton: { // X 버튼 스타일
+    position: 'absolute',
+    top: 0,
+    right: -10,
+    backgroundColor: 'rgba(0,0,0,0.6)', // 반투명 검은색 배경
+    borderRadius: 10, // 원형 버튼
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteImageButtonText: { // X 버튼 텍스트 스타일
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
