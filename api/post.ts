@@ -356,13 +356,17 @@ export async function getPostsByUserId(userId: string): Promise<PostsbyUserIdRes
 
   const response = await fetch(`${BASE_URL}/posts/user/${userId}`);
 
-  if (!response.ok) {
+  if (response.status == 500) {
     const errorText = await response.text();
     throw new Error(`HTTP ${response.status}: ${errorText}`);
   }
 
   const data = await response.json();
   console.log("Posts by user ID response:", data);
-
-  return data.posts;
+  if (data.posts){
+    return data.posts as PostsbyUserIdResponse[];
+  }
+  else{
+    return [];
+  }
 }

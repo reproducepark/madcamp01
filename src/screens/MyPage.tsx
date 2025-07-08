@@ -5,17 +5,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 
-// 내가 쓴 글 목록을 가져오는 API 함수 임포트 (새로 추가될 함수)
-// import { getUserPosts } from '../../api/post'; // 이 함수가 post.ts에 추가되어야 합니다.
+// 내가 쓴 글 목록을 가져오는 API 함수 임포트 (수정됨)
+import { getPostsByUserId } from '../../api/post'; // 이 함수를 post.ts에서 가져옵니다.
 
-// 내가 쓴 글 아이템의 타입 정의
+// 내가 쓴 글 아이템의 타입 정의 (api/post.ts의 PostsbyUserIdResponse와 일치하도록 업데이트)
 interface UserPost {
   id: number;
   title: string;
-  content: string;
-  image_url?: string;
+  image_url: string | null; // 이미지 URL은 null일 수도 있습니다.
   created_at: string; // 게시물 생성 시간
-  // 필요한 다른 필드들을 여기에 추가하세요 (예: likes, comments_count 등)
+  admin_dong: string;
+  nickname: string;
+  // content 필드는 PostsbyUserIdResponse에 없으므로 제거하거나 필요에 따라 추가
 }
 
 // 앱의 최상위 네비게이션 스택에 대한 타입 정의입니다.
@@ -58,12 +59,12 @@ export function MyPageScreen() {
         }
 
         // 내가 쓴 글 불러오기
-        // if (storedUserId) {
-        //   const postsData = await getUserPosts(storedUserId);
-        //   setUserPosts(postsData.userPosts);
-        // } else {
-        //   console.warn('User ID not found, cannot fetch user posts.');
-        // }
+        if (storedUserId) {
+          const postsData = await getPostsByUserId(storedUserId); // getUserPosts 대신 getPostsByUserId 호출
+          setUserPosts(postsData); // 반환된 데이터는 이미 배열이므로 바로 설정
+        } else {
+          console.warn('User ID not found, cannot fetch user posts.');
+        }
 
       } catch (e) {
         console.error('데이터 불러오기 실패:', e);
@@ -85,7 +86,8 @@ export function MyPageScreen() {
       )}
       <View style={styles.postItemContent}>
         <Text style={styles.postItemTitle}>{item.title}</Text>
-        <Text style={styles.postItemDescription} numberOfLines={2}>{item.content}</Text>
+        {/* PostsbyUserIdResponse에는 content 필드가 없으므로 주석 처리하거나 필요에 따라 조정 */}
+        {/* <Text style={styles.postItemDescription} numberOfLines={2}>{item.content}</Text> */}
         <Text style={styles.postItemDate}>{new Date(item.created_at).toLocaleDateString('ko-KR')}</Text>
       </View>
     </TouchableOpacity>
@@ -106,18 +108,13 @@ export function MyPageScreen() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {/* 사용자 정보 카드 */}
-        <View style={styles.infoCard}>
-          {/* <Ionicons name="person-circle-outline" size={60} color="#f4511e" style={styles.icon} /> */}
-          {/* 닉네임과 동네 정보를 담는 컨테이너 */}
-          <View style={styles.userInfoDetails}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabelNickname}>{nickname || '정보 없음'}</Text>
-              {/* <Text style={styles.infoValue}></Text> */}
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabelDong}>{adminDong || '정보 없음'}</Text>
-              {/* <Text style={styles.infoValue}></Text> */}
-            </View>
+        {/* 기존 infoCard 스타일 대신 userInfoDetails를 직접 사용 */}
+        <View style={styles.userInfoDetails}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabelNickname}>{nickname || '정보 없음'}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabelDong}>{adminDong || '정보 없음'}</Text>
           </View>
         </View>
 
@@ -153,8 +150,8 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 20, // 좌우 여백 조정
+    paddingTop: 20,
     backgroundColor: '#f8f8f8',
   },
   loadingContainer: {
@@ -173,60 +170,39 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 30,
   },
-  infoCard: {
-    width: '100%',
-    maxWidth: 400,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    padding: 20,
-    flexDirection: 'row', // 👈 아이콘과 텍스트 컨테이너를 가로로 배열
-    alignItems: 'center', // 👈 세로 중앙 정렬
-    justifyContent: 'flex-start', // 👈 시작 지점부터 배열
-    marginBottom: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+  // infoCard 스타일 제거
+  // icon: { // 아이콘을 사용하지 않으므로 주석 처리
+  //   marginRight: 20,
+  // },
+  userInfoDetails: {
+    width: '100%', // 전체 너비 사용
+    marginBottom: 20, // "내가 쓴 글" 섹션과의 간격
+    paddingHorizontal: 10, // 좌우 패딩 추가
   },
-  icon: {
-    marginRight: 20, // 👈 아이콘과 텍스트 사이 간격
-    // marginBottom: 0, // 👈 기존 스타일에서 필요 없어진 속성 제거
-  },
-  userInfoDetails: { // 👈 닉네임과 동네 정보를 담는 새로운 컨테이너
-    flex: 1, // 남은 공간을 모두 차지하여 텍스트가 오른쪽으로 확장되도록 함
-  },
-  infoRow: { // 👈 각 정보(라벨+값)를 한 줄에 배열
+  infoRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-start', // 👈 라벨은 왼쪽, 값은 오른쪽으로 정렬
-    alignItems: 'center', // 텍스트 세로 중앙 정렬
-    marginBottom: 10, // 각 정보 줄 사이의 간격
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    marginBottom: 5, // 정보 행 사이 간격 줄임
   },
   infoLabelNickname: {
-    fontSize: 30,
+    fontSize: 26, // 닉네임 크기 조정
     color: 'black',
     fontWeight: 'bold',
-    // marginTop: 5, // 👈 infoRow가 간격을 관리하므로 필요 없음
-    // marginBottom: 0, // 👈 infoRow가 간격을 관리하므로 필요 없음
   },
   infoLabelDong: {
-    fontSize: 16,
+    fontSize: 14, // 동네 정보 크기 조정
     color: '#777',
-    fontWeight: 'bold',
-    // marginTop: 0, // 👈 infoRow가 간격을 관리하므로 필요 없음
-    // marginBottom: 0, // 👈 infoRow가 간격을 관리하므로 필요 없음
   },
   infoValue: {
     fontSize: 18,
     color: '#333',
-    // marginBottom: 0, // 👈 infoRow가 간격을 관리하므로 필요 없음
-    // textAlign: 'center', // 👈 infoRow의 justifyContent가 관리하므로 필요 없음
   },
   sectionHeader: {
-    fontSize: 22,
+    fontSize: 20, // 섹션 헤더 크기 조정
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 15,
+    marginBottom: 10, // 간격 줄임
     alignSelf: 'flex-start',
     marginLeft: 10,
   },
@@ -241,26 +217,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingBottom: 20,
     flexGrow: 1,
+    flex: 1,
   },
   postItem: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    backgroundColor: 'transparent', // 배경색 제거
+    borderRadius: 0, // 둥근 모서리 제거
+    paddingVertical: 10, // 상하 패딩 조정
+    paddingHorizontal: 0, // 좌우 패딩 제거 (필요에 따라 조정)
+    marginBottom: 0, // 아이템 사이 간격 제거
+    shadowColor: 'transparent', // 그림자 제거
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
     alignItems: 'center',
+    borderBottomWidth: 1, // 구분선 추가
+    borderBottomColor: '#eee',
   },
   postItemImage: {
-    width: 80,
-    height: 80,
+    width: 60, // 이미지 크기 조정
+    height: 60,
     borderRadius: 8,
     marginRight: 15,
     backgroundColor: '#eee',
+    resizeMode: 'cover',
   },
   postItemContent: {
     flex: 1,
@@ -268,13 +249,13 @@ const styles = StyleSheet.create({
   postItemTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 2, // 제목 아래 간격 줄임
     color: '#333',
   },
   postItemDescription: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 5,
+    marginBottom: 2,
   },
   postItemDate: {
     fontSize: 12,
