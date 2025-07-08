@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, TouchableOpacity, View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, Dimensions, Pressable, Alert, TextInput } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Modal, TouchableOpacity, View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, Dimensions, Pressable, Alert, TextInput, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getPostById, PostByIdResponse, deletePost, updatePost, getCommentsByPostId, createComment, updateComment, deleteComment, Comment, ToggleLikePayload, toggleLike, getLikesCountByPostId, getLikeStatusForUser, LikesCountResponse, LikeStatusResponse } from '../../api/post';
 import { RouteProp } from '@react-navigation/native';
@@ -60,6 +60,9 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
   const [likesCount, setLikesCount] = useState<number>(0);
   const [isLiked, setIsLiked] = useState<boolean>(false);
 
+  // 새로고침 관련 상태 추가
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+
   useEffect(() => {
     const fetchCurrentUserId = async () => {
       try {
@@ -110,11 +113,20 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
     }
   };
 
-  useEffect(() => {
-    fetchPostDetails();
-    fetchComments();
-    fetchLikesInfo();
+  // 모든 데이터를 새로고침하는 함수
+  const refreshAllData = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      fetchPostDetails(),
+      fetchComments(),
+      fetchLikesInfo()
+    ]);
+    setRefreshing(false);
   }, [postId, currentUserId]); // currentUserId가 변경될 때 좋아요 상태를 다시 불러오도록 추가
+
+  useEffect(() => {
+    refreshAllData(); // 초기 로드 시에도 사용
+  }, [refreshAllData]);
 
   // 게시물 편집 모달을 띄우는 함수
   const handleEdit = () => {
@@ -141,7 +153,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
         image_url_update_flag: imageUpdateFlag || false,
       });
       setIsEditModalVisible(false);
-      await fetchPostDetails(); // 수정 후 게시물 상세 정보 새로고침
+      await refreshAllData(); // 수정 후 게시물 상세 정보 새로고침
     } catch (err: any) {
       console.error("게시물 수정 실패:", err);
       Alert.alert('수정 실패', `게시물 수정에 실패했습니다: ${err.message}`);
@@ -300,7 +312,17 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
   const isMyPost = currentUserId === post.user_id;
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={refreshAllData}
+          colors={['#f4511e']} // 로딩 스피너 색상
+          tintColor={'#f4511e'} // iOS에서 로딩 스피너 색상
+        />
+      }
+    >
       {post.image_url && (
         <TouchableOpacity onPress={() => handleImagePress(post.image_url!)} activeOpacity={0.8}>
           <Image source={{ uri: post.image_url }} style={styles.postImage} />
