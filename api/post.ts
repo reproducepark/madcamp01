@@ -113,6 +113,15 @@ export interface DeletePostResponse {
   postId: number;
 }
 
+export interface PostsbyUserIdResponse {
+  id: number;
+  title: string;
+  image_url: string | null;
+  created_at: string;
+  admin_dong: string;
+  nickname: string;
+}
+
 export async function createPost(post: NewPost): Promise<NewPostResponse> {
     // const { userId, title, content, lat, lon, adminDong, upperAdminDong, imageUri } = post;
     const { userId, title, content, lat, lon, image_uri} = post;
