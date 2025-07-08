@@ -18,7 +18,7 @@ interface PostDetailScreenProps {
   navigation: PostDetailScreenNavigationProp;
 }
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -92,22 +92,6 @@ export function PostDetailScreen({ route }: PostDetailScreenProps) {
         <Image source={{ uri: post.image_url }} style={styles.postImage} />
       )}
       <View style={styles.contentContainer}>
-        {/* <Text style={styles.title}>{post.title}</Text> */}
-        {/* <Text style={styles.author}>By {post.nickname}</Text>
-        <Text style={styles.date}>Posted on: {new Date(post.created_at).toLocaleDateString()}</Text>
-        <Text style={styles.location}>Location: {post.admin_dong}</Text>
-        <Text style={styles.content}>{post.content}</Text> */}
-
-
-        {/* <View style={styles.metaInfoContainer}>
-          <Text style={styles.nicknameDisplay}>By {post.nickname}</Text>
-          <Text style={styles.dateTimeLocation}>
-            {new Date(post.created_at).toLocaleDateString('ko-KR')} · {post.admin_dong}
-          </Text>
-        </View> */}
-
-        {/* <View style={styles.contentContainer}> */}
-          {/* 👈 제목과 닉네임을 한 줄에 배치하는 컨테이너 */}
           <View style={styles.titleAndNicknameContainer}>
             <Text style={styles.title}>{post.title}</Text>
             
@@ -117,9 +101,7 @@ export function PostDetailScreen({ route }: PostDetailScreenProps) {
             <Text style={styles.nicknameRight}>{post.nickname}</Text>
           </View>
           
-
           <View style={styles.metaInfoContainer}>
-          {/* 👈 작성일과 위치를 한 줄에 표시 (상대 시간 적용) */}
             <Text style={styles.dateTimeLocation}>
               {formatRelativeTime(post.created_at)} · {post.admin_dong}
             </Text>
@@ -167,6 +149,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: 20,
     marginHorizontal: 5,
+    minHeight: height*0.5,
 
   },
   title: {
