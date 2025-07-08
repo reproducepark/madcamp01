@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useLayoutEffect } from 'react';
 import { Modal, TouchableOpacity, View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, Dimensions, Pressable, Alert, TextInput, RefreshControl, Platform, KeyboardAvoidingView } from 'react-native'; // KeyboardAvoidingView와 Platform 임포트
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getPostById, PostByIdResponse, deletePost, updatePost, getCommentsByPostId, createComment, updateComment, deleteComment, Comment, ToggleLikePayload, toggleLike, getLikesCountByPostId, getLikeStatusForUser, LikesCountResponse, LikeStatusResponse } from '../../api/post';
@@ -74,6 +74,30 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
     };
     fetchCurrentUserId();
   }, []);
+
+    useLayoutEffect(() => {
+    // 탭 내비게이터에 접근하여 tabBarStyle을 변경합니다.
+    // 이는 TabOneStack의 부모인 Tab.Navigator의 옵션을 변경하는 것입니다.
+    navigation.getParent()?.setOptions({
+      tabBarStyle: { display: 'none' },
+    });
+
+    // 컴포넌트 언마운트 시 (뒤로가기 등) 탭 바를 다시 보이도록 클린업 함수 반환
+    return () => {
+      navigation.getParent()?.setOptions({
+        tabBarStyle: {
+          backgroundColor: '#f8f8f8',
+          borderTopWidth: 0,
+          elevation: 10,
+          shadowOpacity: 0.1,
+          shadowRadius: 5,
+          shadowOffset: { width: 0, height: -3 },
+          height: 75,
+          paddingBottom: 5,
+        }, // 원래 탭 바 스타일로 되돌립니다.
+      });
+    };
+  }, [navigation]); // navigation 객체가 변경될 때만 다시 실행
 
   const fetchPostDetails = async () => {
     try {
