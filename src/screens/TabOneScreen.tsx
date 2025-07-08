@@ -34,6 +34,25 @@ export function TabOneScreen() {
 
   const [currentAdminDong, setCurrentAdminDong] = useState<string | null>(null);
 
+  const formatRelativeTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const nineHoursInMilliseconds = 9 * 60 * 60 * 1000;
+  const diffMinutes = Math.floor((now.getTime() - date.getTime() - nineHoursInMilliseconds ) / (1000 * 60));
+
+  if (diffMinutes < 1) return '방금 전';
+  if (diffMinutes < 60) return `${diffMinutes}분 전`;
+  
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}시간 전`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}일 전`;
+  
+  // 일주일 이상 지난 경우, 원래 날짜 형식으로 표시
+  return date.toLocaleDateString('ko-KR');
+};
+
   useEffect(()=>{
     const loadAdminDong = async () => {
       try {
@@ -222,8 +241,16 @@ export function TabOneScreen() {
     <TouchableOpacity style={styles.postItem} onPress={() => handleItemPress(item.id)}>
       <View style={[styles.itemContent, !item.image_url && styles.itemContentFullWidth]}>
         <Text style={styles.itemTitle}>{item.title}</Text>
-        <Text style={styles.itemDescription} numberOfLines={1}>{item.nickname}</Text>
-        <Text style={styles.itemLocation}>{item.admin_dong}</Text>
+        <View style={styles.nicknameContainer}>
+          <Ionicons name="person-circle" size={18} color="#f4511e" />
+          <Text style={styles.nicknameRight}>{item.nickname}</Text>
+        </View>
+        <View style={styles.metaInfoContainer}>
+          <Text style={styles.dateTimeLocation}>
+            {formatRelativeTime(item.created_at)} · {item.admin_dong}
+          </Text>
+        </View>
+        {/* <Text style={styles.itemLocation}>{item.admin_dong}</Text> */}
       </View>
       {item.image_url && (
         <Image source={{ uri: item.image_url }} style={styles.itemImage} />
@@ -429,7 +456,8 @@ const styles = StyleSheet.create({
   },
   itemContent: {
     flex: 1,
-    paddingLeft: 20,
+    paddingLeft: 10,
+    // backgroundColor:
   },
   itemContentFullWidth: {
     marginRight: 0,
@@ -499,5 +527,27 @@ const styles = StyleSheet.create({
   locationInfoContainer:{
     flexDirection:'row',
     alignItems:'center',
+  },
+  nicknameRight: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FF7E36',
+    marginLeft: 5,
+  },
+  nicknameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom:5,
+  },
+  metaInfoContainer: {
+    // marginBottom: 15,
+    // borderBottomWidth: StyleSheet.hairlineWidth, // 구분선 두께 통일
+    borderBottomColor: '#E0E0E0',
+    // paddingBottom: 10,
+    alignItems: 'flex-start',
+  },
+  dateTimeLocation: {
+    fontSize: 12,
+    color: '#999',
   }
 });
