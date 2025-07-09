@@ -9,6 +9,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 
 import { TabOneStackParamList } from '../navigation/TabOneStack';
 import { CustomConfirmModal } from './CustomConfirmModal';
+import { CustomAlertModal } from './CustomAlertModal'; // CustomAlertModal 임포트
 import { WriteModal } from './WriteModal';
 
 type PostDetailScreenRouteProp = RouteProp<TabOneStackParamList, 'PostDetail'>;
@@ -46,7 +47,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   // userAdminDong 상태 추가
   const [userAdminDong, setUserAdminDong] = useState<string | null>(null);
-  const [isDeleteConfirmModalVisible, setIsDeleteConfirmModalVisible] = useState<boolean>(false);
+  const [isDeleteConfirmModalVisible, setIsDeleteConfirmModalModalVisible] = useState<boolean>(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState<boolean>(false);
   const [isImageModalVisible, setIsImageModalVisible] = useState<boolean>(false);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
@@ -65,6 +66,11 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
 
   // 새로고침 관련 상태 추가
   const [refreshing, setRefreshing] = useState<boolean>(false);
+
+  // CustomAlertModal 상태 추가
+  const [isAlertModalVisible, setIsAlertModalVisible] = useState<boolean>(false);
+  const [alertModalTitle, setAlertModalTitle] = useState<string>('');
+  const [alertModalMessage, setAlertModalMessage] = useState<string>('');
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -121,7 +127,10 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
       setComments(fetchedComments);
     } catch (err: any) {
       console.error("Error fetching comments:", err);
-      Alert.alert('댓글 불러오기 실패', `댓글을 불러오는 데 실패했습니다: ${err.message}`);
+      // Alert.alert('댓글 불러오기 실패', `댓글을 불러오는 데 실패했습니다: ${err.message}`);
+      setAlertModalTitle('댓글 불러오기 실패');
+      setAlertModalMessage(`댓글을 불러오는 데 실패했습니다: ${err.message}`);
+      setIsAlertModalVisible(true);
     }
   };
 
@@ -161,7 +170,10 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
 
   const handleUpdatePost = async (title: string, content: string, imageUri?: string, imageDeleteFlag?: boolean, imageUpdateFlag?: boolean) => {
     if (!post || !currentUserId) {
-      Alert.alert('오류', '게시물 정보 또는 사용자 ID가 없습니다.');
+      // Alert.alert('오류', '게시물 정보 또는 사용자 ID가 없습니다.');
+      setAlertModalTitle('오류');
+      setAlertModalMessage('게시물 정보 또는 사용자 ID가 없습니다.');
+      setIsAlertModalVisible(true);
       return;
     }
     try {
@@ -179,20 +191,26 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
       await refreshAllData();
     } catch (err: any) {
       console.error("게시물 수정 실패:", err);
-      Alert.alert('수정 실패', `게시물 수정에 실패했습니다: ${err.message}`);
+      // Alert.alert('수정 실패', `게시물 수정에 실패했습니다: ${err.message}`);
+      setAlertModalTitle('수정 실패');
+      setAlertModalMessage(`게시물 수정에 실패했습니다: ${err.message}`);
+      setIsAlertModalVisible(true);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeletePress = () => {
-    setIsDeleteConfirmModalVisible(true);
+    setIsDeleteConfirmModalModalVisible(true);
   };
 
   const confirmDelete = async () => {
-    setIsDeleteConfirmModalVisible(false);
+    setIsDeleteConfirmModalModalVisible(false);
     if (!post || !currentUserId) {
-      Alert.alert('오류', '게시물 정보 또는 사용자 ID가 없습니다.');
+      // Alert.alert('오류', '게시물 정보 또는 사용자 ID가 없습니다.');
+      setAlertModalTitle('오류');
+      setAlertModalMessage('게시물 정보 또는 사용자 ID가 없습니다.');
+      setIsAlertModalVisible(true);
       return;
     }
     try {
@@ -200,7 +218,10 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
       navigation.goBack();
     } catch (err: any) {
       console.error("게시물 삭제 실패:", err);
-      Alert.alert('삭제 실패', `게시물 삭제에 실패했습니다: ${err.message}`);
+      // Alert.alert('삭제 실패', `게시물 삭제에 실패했습니다: ${err.message}`);
+      setAlertModalTitle('삭제 실패');
+      setAlertModalMessage(`게시물 삭제에 실패했습니다: ${err.message}`);
+      setIsAlertModalVisible(true);
     }
   };
 
@@ -216,18 +237,27 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
 
   const handleCreateComment = async () => {
     if (!currentUserId) {
-      Alert.alert('오류', '로그인된 사용자 정보가 없습니다.');
+      // Alert.alert('오류', '로그인된 사용자 정보가 없습니다.');
+      setAlertModalTitle('오류');
+      setAlertModalMessage('로그인된 사용자 정보가 없습니다.');
+      setIsAlertModalVisible(true);
       return;
     }
     // userAdminDong과 post.admin_dong이 다르면 댓글 작성을 막음
     if (userAdminDong !== post?.admin_dong) {
-        Alert.alert('알림', '이 게시물은 다른 동네 게시물입니다. 댓글을 작성할 수 없습니다.');
+        // Alert.alert('알림', '이 게시물은 다른 동네 게시물입니다. 댓글을 작성할 수 없습니다.');
+        setAlertModalTitle('알림');
+        setAlertModalMessage('이 게시물은 다른 동네 게시물입니다. 댓글을 작성할 수 없습니다.');
+        setIsAlertModalVisible(true);
         setNewCommentText(''); // 입력 필드 초기화
         Keyboard.dismiss(); // 키보드 닫기
         return;
     }
     if (newCommentText.trim() === '') {
-      Alert.alert('알림', '댓글 내용을 입력해주세요.');
+      // Alert.alert('알림', '댓글 내용을 입력해주세요.'); // 이 부분을 CustomAlertModal로 변경
+      setAlertModalTitle('알림');
+      setAlertModalMessage('댓글 내용을 입력해야 해요.');
+      setIsAlertModalVisible(true);
       return;
     }
     try {
@@ -237,7 +267,10 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
       Keyboard.dismiss(); // 댓글 작성 성공 후 키보드 닫기
     } catch (err: any) {
       console.error("댓글 작성 실패:", err);
-      Alert.alert('댓글 작성 실패', `댓글 작성에 실패했습니다: ${err.message}`);
+      // Alert.alert('댓글 작성 실패', `댓글 작성에 실패했습니다: ${err.message}`);
+      setAlertModalTitle('댓글 작성 실패');
+      setAlertModalMessage(`댓글 작성에 실패했습니다: ${err.message}`);
+      setIsAlertModalVisible(true);
     }
   };
 
@@ -248,11 +281,17 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
 
   const handleUpdateComment = async (commentId: number) => {
     if (!currentUserId) {
-      Alert.alert('오류', '로그인된 사용자 정보가 없습니다.');
+      // Alert.alert('오류', '로그인된 사용자 정보가 없습니다.');
+      setAlertModalTitle('오류');
+      setAlertModalMessage('로그인된 사용자 정보가 없습니다.');
+      setIsAlertModalVisible(true);
       return;
     }
     if (editingCommentText.trim() === '') {
-      Alert.alert('알림', '댓글 내용을 입력해주세요.');
+      // Alert.alert('알림', '댓글 내용을 입력해주세요.');
+      setAlertModalTitle('알림');
+      setAlertModalMessage('댓글 내용을 입력해주세요.');
+      setIsAlertModalVisible(true);
       return;
     }
     try {
@@ -263,7 +302,10 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
       Keyboard.dismiss(); // 댓글 수정 성공 후 키보드 닫기
     } catch (err: any) {
       console.error("댓글 수정 실패:", err);
-      Alert.alert('댓글 수정 실패', `댓글 수정에 실패했습니다: ${err.message}`);
+      // Alert.alert('댓글 수정 실패', `댓글 수정에 실패했습니다: ${err.message}`);
+      setAlertModalTitle('댓글 수정 실패');
+      setAlertModalMessage(`댓글 수정에 실패했습니다: ${err.message}`);
+      setIsAlertModalVisible(true);
     }
   };
 
@@ -275,7 +317,10 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
   const confirmDeleteComment = async () => {
     setIsCommentDeleteConfirmModalVisible(false);
     if (!currentUserId || commentToDeleteId === null) {
-      Alert.alert('오류', '사용자 정보 또는 삭제할 댓글 정보가 없습니다.');
+      // Alert.alert('오류', '사용자 정보 또는 삭제할 댓글 정보가 없습니다.');
+      setAlertModalTitle('오류');
+      setAlertModalMessage('사용자 정보 또는 삭제할 댓글 정보가 없습니다.');
+      setIsAlertModalVisible(true);
       return;
     }
     try {
@@ -284,13 +329,19 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
       fetchComments();
     } catch (err: any) {
       console.error("댓글 삭제 실패:", err);
-      Alert.alert('댓글 삭제 실패', `댓글 삭제에 실패했습니다: ${err.message}`);
+      // Alert.alert('댓글 삭제 실패', `댓글 삭제에 실패했습니다: ${err.message}`);
+      setAlertModalTitle('댓글 삭제 실패');
+      setAlertModalMessage(`댓글 삭제에 실패했습니다: ${err.message}`);
+      setIsAlertModalVisible(true);
     }
   };
 
   const handleToggleLike = async () => {
     if (!currentUserId) {
-      Alert.alert('알림', '로그인이 필요합니다.');
+      // Alert.alert('알림', '로그인이 필요합니다.');
+      setAlertModalTitle('알림');
+      setAlertModalMessage('로그인이 필요합니다.');
+      setIsAlertModalVisible(true);
       return;
     }
     try {
@@ -300,7 +351,10 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
       fetchLikesInfo(); 
     } catch (err: any) {
       console.error("좋아요 토글 실패:", err);
-      Alert.alert('좋아요 오류', `좋아요 처리 중 오류가 발생했습니다: ${err.message}`);
+      // Alert.alert('좋아요 오류', `좋아요 처리 중 오류가 발생했습니다: ${err.message}`);
+      setAlertModalTitle('좋아요 오류');
+      setAlertModalMessage(`좋아요 처리 중 오류가 발생했습니다: ${err.message}`);
+      setIsAlertModalVisible(true);
     }
   };
 
@@ -515,7 +569,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
           isVisible={isDeleteConfirmModalVisible}
           title="정말 삭제할까요?"
           message="삭제된 글은 복구할 수 없어요."
-          onCancel={() => setIsDeleteConfirmModalVisible(false)}
+          onCancel={() => setIsDeleteConfirmModalModalVisible(false)}
           onConfirm={confirmDelete}
           confirmText="삭제"
           cancelText="취소"
@@ -531,6 +585,13 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
           cancelText="취소"
         />
 
+        {/* CustomAlertModal 추가 */}
+        <CustomAlertModal
+          isVisible={isAlertModalVisible}
+          title={alertModalTitle}
+          message={alertModalMessage}
+          onClose={() => setIsAlertModalVisible(false)}
+        />
        
         <WriteModal
           visible={isEditModalVisible}
@@ -678,7 +739,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 10,
-    paddingRight: 10,
+    paddingRight: 5,
     backgroundColor: '#fff',
   },
   commentInput: {
