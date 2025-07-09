@@ -279,9 +279,10 @@ export function TabOneScreen() {
   const renderItem = ({ item }: { item: NearByPostsResponse }) => (
     <TouchableOpacity style={styles.postItem} onPress={() => handleItemPress(item.id)}>
       <View style={styles.itemMainContent}>
-        <Text style={styles.itemTitle}>{item.title}</Text>
-        <View style={styles.nicknameContainer}>
-          <Text style={styles.nicknameRight}>{item.nickname}</Text>
+        {/* title과 닉네임을 묶는 새로운 View */}
+        <View style={styles.titleAndNicknameContainer}>
+          <Text style={styles.itemTitle}>{item.title}</Text>
+          <Text style={styles.nicknameText}>{item.nickname}</Text>
         </View>
         <Text style={styles.dateTimeLocation}>
           {formatRelativeTime(item.created_at)} · {item.admin_dong}
@@ -489,22 +490,21 @@ const styles = StyleSheet.create({
   },
   postItem: {
     flexDirection: 'row',
-    // alignItems: 'flex-end', // 이 부분을 제거하거나 다른 값으로 조절했습니다.
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLOR_PALETTE.BORDER_COLOR,
     backgroundColor: COLOR_PALETTE.WHITE,
   },
-  itemMainContent: { // 텍스트 콘텐츠를 위한 새로운 컨테이너
+  itemMainContent: { 
     flex: 1,
-    flexGrow: 1, // 추가: 남은 공간을 채우도록 함
-    justifyContent: 'space-between', // 내부 콘텐츠를 위아래로 분산
-    minHeight: 70, // 이미지 높이에 맞춰 최소 높이 설정 (이미지가 없을 때도 레이아웃 유지)
+    flexGrow: 1, 
+    justifyContent: 'space-between', 
+    minHeight: 70, 
   },
-  rightSideContentContainer: { // 이미지와 좋아요 개수를 감싸는 컨테이너
+  rightSideContentContainer: { 
     marginLeft: 12,
-    alignItems: 'flex-end', // 이 컨테이너 내의 자식 요소들을 오른쪽으로 정렬
-    justifyContent: 'flex-end', // 세로 공간이 남으면 콘텐츠를 아래로 정렬
+    alignItems: 'flex-end', 
+    justifyContent: 'flex-end', 
   },
   itemImage: {
     width: 70,
@@ -516,7 +516,11 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 4,
+    // marginBottom: 4, // 이 부분은 이제 titleAndNicknameContainer에서 관리
+  },
+  // 새로운 스타일 추가: title과 닉네임을 감싸는 컨테이너
+  titleAndNicknameContainer: {
+    marginBottom: 4, // 제목과 닉네임 블록 전체의 하단 마진
   },
   itemDescription: {
     fontSize: 13,
@@ -583,15 +587,16 @@ const styles = StyleSheet.create({
     flexDirection:'row',
     alignItems:'center',
   },
-  nicknameRight: {
+  // nicknameRight 대신 nicknameText로 변경하고, 스타일 조정
+  nicknameText: {
     fontSize: 14,
     fontWeight: 'bold',
     color: COLOR_PALETTE.LIKE_COLOR,
+    marginTop: 2, // 제목 아래 닉네임이 오도록 약간의 마진 추가
   },
-  nicknameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingBottom:5,
+  // 기존 nicknameContainer는 제거 (이제 titleAndNicknameContainer가 대체)
+  nicknameContainer: { 
+    // 이 스타일은 더 이상 사용되지 않습니다.
   },
   metaInfoContainer: {
     flexDirection: 'row',
