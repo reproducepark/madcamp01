@@ -7,15 +7,28 @@ import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 
-// Import the specific parameter list for TabOne's stack
 import { TabOneStackParamList } from '../navigation/TabOneStack';
-
-// WriteModal 컴포넌트 임포트
 import { WriteModal } from '../components/WriteModal';
-// CustomAlertModal 임포트 추가
 import { CustomAlertModal } from '../components/CustomAlertModal';
-// CustomConfirmModal 임포트 추가 (handleLocationRefreshConfirmation에서도 사용되므로)
 import { CustomConfirmModal } from '../components/CustomConfirmModal';
+
+
+// 사용할 색상 팔레트를 상수로 정의합니다.
+const COLOR_PALETTE = {
+  BLUE_DARK: "#072ac8",
+  BLUE_MEDIUM: "#1e96fc",
+  BLUE_LIGHT: "#a2d6f9",
+  MUSTARD_LIGHT: "#f85e00", // 닉네임 등에 사용될 수 있는 색상
+  MUSTARD_DARK: "#a594f9",  // 주황색을 대체할 메인 강조 색상
+  // 무채색은 그대로 유지
+  WHITE: '#fff',
+  BLACK: '#000',
+  GRAY_DARK: '#333',
+  GRAY_MEDIUM: '#555',
+  GRAY_LIGHT: '#888',
+  GRAY_VERY_LIGHT: '#999',
+  BORDER_COLOR: '#e0e0e0',
+};
 
 
 export function TabOneScreen() {
@@ -145,7 +158,6 @@ export function TabOneScreen() {
       // CustomAlertModal 사용
       setLocationUpdateMessage(`위치 정보가 '${updateRes.adminDong}'으로 업데이트 되었습니다.`);
       setIsLocationUpdateAlertVisible(true);
-      // Alert.alert('알림', `위치 정보가 '${updateRes.adminDong}'으로 업데이트되었습니다.`); // 기존 Alert 제거
 
       fetchPosts();
     } catch (e: any) {
@@ -182,16 +194,16 @@ export function TabOneScreen() {
             disabled={isLocationRefreshing}
           >
             {isLocationRefreshing ? (
-              <ActivityIndicator size="small" color="#f4511e" />
+              <ActivityIndicator size="small" color={COLOR_PALETTE.MUSTARD_DARK} />
             ) : (
-              <Ionicons name="refresh" size={24} color="#f4511e" />
+              <Ionicons name="refresh" size={24} color={COLOR_PALETTE.MUSTARD_DARK} />
             )}
           </TouchableOpacity>
           <TouchableOpacity
               onPress={handleMyPagePress}
               style={styles.headerButton}
           >
-            <Ionicons name="person-circle" size={24} color="#f4511e" />
+            <Ionicons name="person-circle" size={24} color={COLOR_PALETTE.MUSTARD_DARK} />
           </TouchableOpacity>
 
         </View>
@@ -249,7 +261,6 @@ export function TabOneScreen() {
             {formatRelativeTime(item.created_at)} · {item.admin_dong}
           </Text>
         </View>
-        {/* <Text style={styles.itemLocation}>{item.admin_dong}</Text> */}
       </View>
       {item.image_url && (
         <Image source={{ uri: item.image_url }} style={styles.itemImage} />
@@ -262,19 +273,18 @@ export function TabOneScreen() {
       <View style={styles.navContainer}>
 
         <View style={styles.locationInfoContainer}>
-            {/* inlineRefreshButton에 flexDirection: 'row'와 alignItems: 'center'를 적용 */}
             <TouchableOpacity
               onPress={handleLocationRefreshConfirmation}
-              style={styles.inlineRefreshButton} // 이 스타일을 수정합니다.
+              style={styles.inlineRefreshButton}
               disabled={isLocationRefreshing}
             >
                 <Text style={styles.textDong}>
                     {currentAdminDong || '위치 정보 로딩 중...'}
                 </Text>
                 {isLocationRefreshing ? (
-                    <ActivityIndicator size="small" color="#f4511e" style={styles.locationIcon} />
+                    <ActivityIndicator size="small" color={COLOR_PALETTE.MUSTARD_DARK} style={styles.locationIcon} />
                 ) : (
-                    <Ionicons name="navigate-circle" size={20} color="#f4511e" style={styles.locationIcon} />
+                    <Ionicons name="navigate-circle" size={20} color={COLOR_PALETTE.MUSTARD_DARK} style={styles.locationIcon} />
                 )}
             </TouchableOpacity>
         </View>
@@ -285,7 +295,7 @@ export function TabOneScreen() {
               onPress={handleMyPagePress}
               style={styles.headerButton}
           >
-            <Ionicons name="person-circle" size={35} color="#f4511e" />
+            <Ionicons name="person-circle" size={35} color={COLOR_PALETTE.MUSTARD_DARK} />
         </TouchableOpacity>
 
       </View>
@@ -293,7 +303,7 @@ export function TabOneScreen() {
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#f4511e" />
+            <ActivityIndicator size="large" color={COLOR_PALETTE.MUSTARD_DARK} />
             <Text style={styles.loadingText}>글을 불러오는 중...</Text>
           </View>
         ) : (
@@ -303,7 +313,7 @@ export function TabOneScreen() {
             contentContainerStyle={styles.listContainer}
             renderItem={renderItem}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLOR_PALETTE.MUSTARD_DARK} />
             }
             ListEmptyComponent={() => (
               <View style={styles.noPostsContainer}>
@@ -357,31 +367,29 @@ export function TabOneScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLOR_PALETTE.WHITE, // 변경: 흰색은 유지
   },
   navContainer: {
     flexDirection:'row',
     justifyContent:'space-between',
     padding: 20,
-    paddingTop: Platform.OS === 'android' ? ((StatusBar.currentHeight || 0) + 20) : 20, // 안드로이드일 경우 StatusBar 높이 추가
-    alignItems: 'center', // navContainer 내부 요소들을 수직 중앙 정렬
+    paddingTop: Platform.OS === 'android' ? ((StatusBar.currentHeight || 0) + 20) : 20,
+    alignItems: 'center',
   },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLOR_PALETTE.WHITE, // 변경: 흰색은 유지
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
   textDong: {
     fontSize: 24,
     fontWeight: 'bold',
-    // marginLeft: 10, // 이제 inlineRefreshButton에서 패딩을 줄 것이므로 제거
     textAlign: 'left',
-    // backgroundColor: 'yellow', // 디버깅용으로 필요시 사용
     paddingVertical: 0,
     lineHeight: 32,
     includeFontPadding: false,
-    textAlignVertical: 'center', // Android 텍스트 수직 정렬에 도움
+    textAlignVertical: 'center',
   },
   text: {
     fontSize: 24,
@@ -391,7 +399,7 @@ const styles = StyleSheet.create({
   },
   subText: {
     fontSize: 16,
-    color: 'gray',
+    color: COLOR_PALETTE.GRAY_LIGHT, // 변경: 무채색 유지
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -406,16 +414,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderRadius: 8,
-    backgroundColor: '#fafafa',
+    backgroundColor: '#fafafa', // 변경: 무채색 유지
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: COLOR_PALETTE.BLACK, // 변경: 무채색 유지
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
   itemSubtitle: {
     fontSize: 12,
-    color: '#999',
+    color: COLOR_PALETTE.GRAY_VERY_LIGHT, // 변경: 무채색 유지
     marginTop: 4,
   },
   textContainer: {
@@ -433,37 +441,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     right: 20,
     bottom: 20,
-    backgroundColor: '#f4511e',
+    backgroundColor: COLOR_PALETTE.MUSTARD_DARK, // 변경: 주황색 -> 진한 머스타드
     borderRadius: 28,
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: COLOR_PALETTE.BLACK, // 변경: 무채색 유지
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   fabText: {
     fontSize: 24,
-    color: 'white',
+    color: COLOR_PALETTE.WHITE, // 변경: 흰색은 유지
   },
   postItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e0e0e0',
-    backgroundColor: '#fff',
+    borderBottomColor: COLOR_PALETTE.BORDER_COLOR, // 변경: 무채색 유지
+    backgroundColor: COLOR_PALETTE.WHITE, // 변경: 흰색은 유지
   },
   itemImage: {
     width: 70,
     height: 70,
     borderRadius: 8,
-    backgroundColor: '#eee',
+    backgroundColor: '#eee', // 변경: 무채색 유지
     marginLeft: 12,
   },
   itemContent: {
     flex: 1,
     paddingLeft: 10,
-    // backgroundColor:
   },
   itemContentFullWidth: {
     marginRight: 0,
@@ -476,12 +483,12 @@ const styles = StyleSheet.create({
   },
   itemDescription: {
     fontSize: 13,
-    color: '#555',
+    color: COLOR_PALETTE.GRAY_MEDIUM, // 변경: 무채색 유지
     marginBottom: 4,
   },
   itemLocation: {
     fontSize: 12,
-    color: '#999',
+    color: COLOR_PALETTE.GRAY_VERY_LIGHT, // 변경: 무채색 유지
   },
   noPostsContainer: {
     flex: 1,
@@ -493,12 +500,12 @@ const styles = StyleSheet.create({
   noPostsText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#555',
+    color: COLOR_PALETTE.GRAY_MEDIUM, // 변경: 무채색 유지
     marginBottom: 5,
   },
   noPostsSubText: {
     fontSize: 14,
-    color: '#888',
+    color: COLOR_PALETTE.GRAY_LIGHT, // 변경: 무채색 유지
     textAlign: 'center',
   },
   loadingContainer: {
@@ -510,12 +517,12 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#555',
+    color: COLOR_PALETTE.GRAY_MEDIUM, // 변경: 무채색 유지
   },
   adminDongText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#f4511e',
+    color: COLOR_PALETTE.MUSTARD_DARK, // 변경: 주황색 -> 진한 머스타드
     textAlign: 'center',
     marginBottom: 10,
   },
@@ -524,26 +531,25 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   inlineRefreshButton: {
-    flexDirection: 'row', // 텍스트와 아이콘을 한 줄에 배치
-    alignItems: 'center', // 텍스트와 아이콘을 수직 중앙 정렬
-    paddingLeft: 10, // 왼쪽 패딩을 여기서 조절
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 10,
   },
   locationIcon: {
-    marginLeft: 5, // 텍스트와 아이콘 사이 간격
-    // 아이콘 자체의 크기나 정렬 미세 조정을 위한 스타일 추가 가능
+    marginLeft: 5,
   },
   headerRightContainer: {
     flexDirection: 'row',
     marginRight: 5,
   },
   locationInfoContainer:{
-    flexDirection:'row', // 이 부분은 유지해도 좋지만, inlineRefreshButton이 대부분을 담당
-    alignItems:'center', // 내부 요소들을 수직 중앙 정렬 (선택 사항, inlineRefreshButton에 이미 적용됨)
+    flexDirection:'row',
+    alignItems:'center',
   },
   nicknameRight: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#FF7E36',
+    color: COLOR_PALETTE.MUSTARD_DARK, // 변경: 주황색 -> 밝은 머스타드
   },
   nicknameContainer: {
     flexDirection: 'row',
@@ -551,11 +557,11 @@ const styles = StyleSheet.create({
     paddingBottom:5,
   },
   metaInfoContainer: {
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: COLOR_PALETTE.BORDER_COLOR, // 변경: 무채색 유지
     alignItems: 'flex-start',
   },
   dateTimeLocation: {
     fontSize: 12,
-    color: '#999',
+    color: COLOR_PALETTE.GRAY_VERY_LIGHT, // 변경: 무채색 유지
   }
 });
