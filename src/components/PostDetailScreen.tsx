@@ -827,7 +827,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   editSaveButton: {
-    backgroundColor: COLOR_PALETTE.LIKE_COLOR, // 변경: #f4511e -> COLOR_PALETTE.GRAYISH_BROWN_DARK
+    backgroundColor: COLOR_PALETTE.GRAYISH_BROWN_DARK, // 변경: #f4511e -> COLOR_PALETTE.GRAYISH_BROWN_DARK
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 5,
@@ -838,14 +838,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   editCancelButton: {
-    backgroundColor: COLOR_PALETTE.GRAYISH_BROWN_DARK, // 변경: #ccc -> COLOR_PALETTE.GRAY_VERY_LIGHT
+    backgroundColor: COLOR_PALETTE.GRAY_VERY_LIGHT, // 변경: #ccc -> COLOR_PALETTE.GRAY_VERY_LIGHT
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 5,
     marginLeft: 10,
   },
   editCancelButtonText: {
-    color: COLOR_PALETTE.WHITE, // 변경: #333 -> COLOR_PALETTE.GRAY_DARK
+    color: COLOR_PALETTE.GRAY_DARK, // 변경: #333 -> COLOR_PALETTE.GRAY_DARK
     fontWeight: 'bold',
   },
   likesContainer: {
