@@ -22,6 +22,24 @@ const NUM_COLUMNS = 3;
 
 const ITEM_SIZE = (width - (LIST_PADDING_HORIZONTAL * 2) - (ITEM_SPACING * (NUM_COLUMNS - 1))) / NUM_COLUMNS;
 
+// 사용할 색상 팔레트를 상수로 정의합니다.
+const COLOR_PALETTE = {
+  NAVY_BLUE: "#072ac8", // BLUE_DARK -> NAVY_BLUE
+  SKY_BLUE: "#1e96fc", // BLUE_MEDIUM -> SKY_BLUE
+  LIGHT_BLUE: "#a2d6f9", // BLUE_LIGHT -> LIGHT_BLUE
+  GRAYISH_BROWN_LIGHT: "#6c757d", // MUSTARD_LIGHT -> GRAYISH_BROWN_LIGHT
+  GRAYISH_BROWN_DARK: "#6c757d",  // MUSTARD_DARK -> GRAYISH_BROWN_DARK
+  // 무채색은 그대로 유지
+  WHITE: '#fff',
+  BLACK: '#000',
+  GRAY_DARK: '#333',
+  GRAY_MEDIUM: '#555',
+  GRAY_LIGHT: '#888',
+  GRAY_VERY_LIGHT: '#999',
+  BORDER_COLOR: '#e0e0e0',
+  LIKE_COLOR: '#e71d36', // 좋아요 아이콘 색상
+};
+
 export function TabTwoScreen() {
   const navigation = useNavigation<NavigationProp<TabTwoStackParamList>>();
   const [listData, setListData] = useState<NearByPostsUpperResponse[]>([]);
@@ -174,9 +192,9 @@ export function TabTwoScreen() {
                 disabled={isLocationRefreshing}
             >
                 {isLocationRefreshing ? (
-                    <ActivityIndicator size="small" color="#f4511e" style={styles.locationIcon} />
+                    <ActivityIndicator size="small" color={COLOR_PALETTE.LIKE_COLOR} style={styles.locationIcon} />
                 ) : (
-                    <Ionicons name="navigate-circle" size={20} color="#f4511e" style={styles.locationIcon} /> 
+                    <Ionicons name="navigate-circle" size={20} color={COLOR_PALETTE.LIKE_COLOR} style={styles.locationIcon} /> 
                 )}
             </TouchableOpacity>
         </View>
@@ -184,7 +202,7 @@ export function TabTwoScreen() {
               onPress={handleMyPagePress}
               style={styles.headerButton}
           >
-            <Ionicons name="person-circle" size={35} color="#f4511e" />
+            <Ionicons name="person-circle" size={35} color={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
         </TouchableOpacity>
 
       </View>
@@ -198,6 +216,7 @@ export function TabTwoScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={fetchPosts}
+            tintColor={COLOR_PALETTE.GRAYISH_BROWN_DARK}
           />
         }
       />
@@ -231,7 +250,7 @@ export function TabTwoScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLOR_PALETTE.WHITE,
   },
   list: {
     paddingHorizontal: LIST_PADDING_HORIZONTAL,
@@ -240,7 +259,7 @@ const styles = StyleSheet.create({
     width: ITEM_SIZE,
     height: ITEM_SIZE,
     borderRadius: 8,
-    backgroundColor: '#eee',
+    backgroundColor: '#eee', // 무채색 유지
   },
   navContainer: {
     flexDirection:'row',

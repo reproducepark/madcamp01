@@ -16,11 +16,11 @@ import { CustomConfirmModal } from '../components/CustomConfirmModal';
 
 // 사용할 색상 팔레트를 상수로 정의합니다.
 const COLOR_PALETTE = {
-  BLUE_DARK: "#072ac8",
-  BLUE_MEDIUM: "#1e96fc",
-  BLUE_LIGHT: "#a2d6f9",
-  MUSTARD_LIGHT: "#6c757d", // 닉네임 등에 사용될 수 있는 색상
-  MUSTARD_DARK: "#6c757d",  // 주황색을 대체할 메인 강조 색상
+  NAVY_BLUE: "#072ac8", // BLUE_DARK -> NAVY_BLUE
+  SKY_BLUE: "#1e96fc", // BLUE_MEDIUM -> SKY_BLUE
+  LIGHT_BLUE: "#a2d6f9", // BLUE_LIGHT -> LIGHT_BLUE
+  GRAYISH_BROWN_LIGHT: "#6c757d", // MUSTARD_LIGHT -> GRAYISH_BROWN_LIGHT
+  GRAYISH_BROWN_DARK: "#6c757d",  // MUSTARD_DARK -> GRAYISH_BROWN_DARK
   // 무채색은 그대로 유지
   WHITE: '#fff',
   BLACK: '#000',
@@ -222,16 +222,16 @@ export function TabOneScreen() {
             disabled={isLocationRefreshing}
           >
             {isLocationRefreshing ? (
-              <ActivityIndicator size="small" color={COLOR_PALETTE.MUSTARD_LIGHT} />
+              <ActivityIndicator size="small" color={COLOR_PALETTE.GRAYISH_BROWN_LIGHT} />
             ) : (
-              <Ionicons name="refresh" size={24} color={COLOR_PALETTE.MUSTARD_LIGHT} />
+              <Ionicons name="refresh" size={24} color={COLOR_PALETTE.GRAYISH_BROWN_LIGHT} />
             )}
           </TouchableOpacity>
           <TouchableOpacity
               onPress={handleMyPagePress}
               style={styles.headerButton}
           >
-            <Ionicons name="person-circle" size={24} color={COLOR_PALETTE.MUSTARD_DARK} />
+            <Ionicons name="person-circle" size={24} color={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
           </TouchableOpacity>
 
         </View>
@@ -317,7 +317,7 @@ export function TabOneScreen() {
                     {currentAdminDong || '위치 정보 로딩 중...'}
                 </Text>
                 {isLocationRefreshing ? (
-                    <ActivityIndicator size="small" color={COLOR_PALETTE.MUSTARD_DARK} style={styles.locationIcon} />
+                    <ActivityIndicator size="small" color={COLOR_PALETTE.GRAYISH_BROWN_DARK} style={styles.locationIcon} />
                 ) : (
                     <Ionicons name="navigate-circle" size={20} color={COLOR_PALETTE.LIKE_COLOR} style={styles.locationIcon} />
                 )}
@@ -330,7 +330,7 @@ export function TabOneScreen() {
               onPress={handleMyPagePress}
               style={styles.headerButton}
           >
-            <Ionicons name="person-circle" size={35} color={COLOR_PALETTE.MUSTARD_DARK} />
+            <Ionicons name="person-circle" size={35} color={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
         </TouchableOpacity>
 
       </View>
@@ -338,7 +338,7 @@ export function TabOneScreen() {
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLOR_PALETTE.MUSTARD_DARK} />
+            <ActivityIndicator size="large" color={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
             <Text style={styles.loadingText}>글을 불러오는 중...</Text>
           </View>
         ) : (
@@ -348,7 +348,7 @@ export function TabOneScreen() {
             contentContainerStyle={styles.listContainer}
             renderItem={renderItem}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLOR_PALETTE.MUSTARD_DARK} />
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
             }
             ListEmptyComponent={() => (
               <View style={styles.noPostsContainer}>
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
   adminDongText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLOR_PALETTE.MUSTARD_DARK, // 변경: 주황색 -> 진한 머스타드
+    color: COLOR_PALETTE.GRAYISH_BROWN_DARK, // 변경: 주황색 -> 진한 머스타드
     textAlign: 'center',
     marginBottom: 10,
   },
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   nicknameRight: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: COLOR_PALETTE.MUSTARD_DARK, // 변경: 주황색 -> 밝은 머스타드
+    color: COLOR_PALETTE.GRAYISH_BROWN_DARK, // 변경: 주황색 -> 밝은 머스타드
   },
   nicknameContainer: {
     flexDirection: 'row',
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
   },
   likesCountText: {
     fontSize: 12,
-    color: COLOR_PALETTE.MUSTARD_LIGHT, // 좋아요 아이콘과 같은 색상
+    color: COLOR_PALETTE.GRAYISH_BROWN_LIGHT, // 좋아요 아이콘과 같은 색상
     marginLeft: 4,
   },
 });

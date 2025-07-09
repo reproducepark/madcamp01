@@ -1,13 +1,29 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, Text, Animated } from 'react-native'; // Animated 임포트
+import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, Text, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import BottomSheet from '@gorhom/bottom-sheet'; // 'bottom-sheet'를 'bottom-sheets'로 수정했습니다.
+import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getPostsInViewport, NearByViewportResponse, Viewport } from '../../api/post';
 import MapComponent from '../components/MapComponent';
 import BottomSheetContent from '../components/BottomSheetContent';
 import MapView, { Region } from 'react-native-maps';
+
+// 사용할 색상 팔레트를 상수로 정의합니다.
+const COLOR_PALETTE = {
+  SKY_BLUE: "#1e96fc",
+  LIGHT_BLUE: "#a2d6f9",
+  GRAYISH_BROWN_LIGHT: "#6c757d",
+  GRAYISH_BROWN_DARK: "#6c757d",
+  WHITE: '#fff',
+  BLACK: '#000',
+  GRAY_DARK: '#333',
+  GRAY_MEDIUM: '#555',
+  GRAY_LIGHT: '#888',
+  GRAY_VERY_LIGHT: '#999',
+  BORDER_COLOR: '#e0e0e0',
+  LIKE_COLOR: '#e71d36', // 좋아요 아이콘 색상 (주황색 계열)
+};
 
 export function TabThreeScreen() {
   const [currentRegion, setCurrentRegion] = useState<null | Region>(null);
@@ -159,8 +175,8 @@ export function TabThreeScreen() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       {!initialMapRegion ? (
         <View style={styles.loading}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={{ marginTop: 10 }}>지도를 불러오는 중...</Text>
+          <ActivityIndicator size="large" color={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
+          <Text style={{ marginTop: 10, color: COLOR_PALETTE.GRAY_MEDIUM }}>지도를 불러오는 중...</Text>
         </View>
       ) : (
         <View style={styles.mapContainer}>
@@ -185,10 +201,10 @@ export function TabThreeScreen() {
                 disabled={loadingPosts}
               >
                 {loadingPosts ? (
-                  <ActivityIndicator size="small" color="#007AFF" />
+                  <ActivityIndicator size="small" color={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
                 ) : (
                   <Text style={styles.loadPostsButtonText}>
-                    <Ionicons name="location-outline" size={16} color="#007AFF" /> 이 지역 검색하기
+                    <Ionicons name="location-outline" size={16} color={COLOR_PALETTE.GRAYISH_BROWN_DARK} /> 이 지역 검색하기
                   </Text>
                 )}
               </TouchableOpacity>
@@ -211,7 +227,7 @@ export function TabThreeScreen() {
                 style={styles.myLocationButton}
                 onPress={moveToCurrentLocation}
               >
-                <Ionicons name="locate" size={28} color="#007AFF" />
+                <Ionicons name="locate" size={28} color={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
               </TouchableOpacity>
             )}
           </Animated.View>
@@ -263,23 +279,27 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   loadPostsButton: {
-    backgroundColor: '#fff',
+    backgroundColor: COLOR_PALETTE.WHITE,
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 20,
-    shadowColor: '#000',
+    shadowColor: COLOR_PALETTE.BLACK,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center', // 추가: 수평 중앙 정렬
   },
   loadPostsButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: COLOR_PALETTE.GRAYISH_BROWN_DARK,
     marginLeft: 5,
+    lineHeight: 16 * 1.2, // 폰트 사이즈에 비례하여 lineHeight 조정 (조절 필요할 수 있음)
+    includeFontPadding: false, // 폰트 패딩 제거 (Android)
+    textAlignVertical: 'center', // 수직 중앙 정렬 (Android)
   },
   toggleListButtonContainer: {
     position: 'absolute',
@@ -288,11 +308,11 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   toggleListButton: {
-    backgroundColor: '#ff7f00',
+    backgroundColor: COLOR_PALETTE.LIKE_COLOR,
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 25,
-    shadowColor: '#000',
+    shadowColor: COLOR_PALETTE.BLACK,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -301,7 +321,7 @@ const styles = StyleSheet.create({
   toggleListButtonText: {
     fontSize: 17,
     fontWeight: 'bold',
-    color: '#fff',
+    color: COLOR_PALETTE.WHITE,
   },
   // '현재 위치로' 버튼 컨테이너 추가 및 스타일 분리
   myLocationButtonContainer: {
@@ -311,10 +331,10 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   myLocationButton: {
-    backgroundColor: '#fff',
+    backgroundColor: COLOR_PALETTE.WHITE,
     padding: 12,
     borderRadius: 50,
-    shadowColor: '#000',
+    shadowColor: COLOR_PALETTE.BLACK,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -331,14 +351,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 100,
     alignSelf: 'center',
-    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+    backgroundColor: COLOR_PALETTE.LIKE_COLOR,
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 10,
     zIndex: 1,
   },
   errorText: {
-    color: '#fff',
+    color: COLOR_PALETTE.WHITE,
     fontSize: 14,
     fontWeight: 'bold',
   },

@@ -7,7 +7,7 @@ export default {
         slug: "madcamp01",
         version: "1.0.0",
         orientation: "portrait",
-        icon: "./assets/icon.png",
+        icon: "./assets/app_icon.png",
         userInterfaceStyle: "light",
         newArchEnabled: true,
         splash: {

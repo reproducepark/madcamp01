@@ -54,8 +54,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
         <Marker
           key={post.id}
           coordinate={{ latitude: post.lat, longitude: post.lon }}
-          title={post.title}
-          description={post.content}
+          // title={post.title}
+          // description={post.content}
           onPress={() => onMarkerPress(post)}
         >
           <View style={styles.customMarker}>
@@ -90,16 +90,16 @@ const styles = StyleSheet.create({
     height: 16,
     width: 16,
     borderRadius: 8,
-    backgroundColor: 'orange',
+    backgroundColor: '#e71d36',
   },
   // 사용자 위치 마커 스타일 추가
   userLocationMarker: {
     height: 20,
     width: 20,
     borderRadius: 10,
-    backgroundColor: 'rgba(0, 122, 255, 0.3)', // 투명도 있는 파란색 원
+    backgroundColor: 'rgba(0, 0, 0, 0.3)', // 투명도 있는 파란색 원
     borderWidth: 1,
-    borderColor: 'rgba(0, 122, 255, 0.6)',
+    borderColor: 'rgba(0, 0, 0, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     height: 10,
     width: 10,
     borderRadius: 5,
-    backgroundColor: '#007AFF', // 진한 파란색 점
+    backgroundColor: '#6c757d', // 진한 파란색 점
   },
 });
 
