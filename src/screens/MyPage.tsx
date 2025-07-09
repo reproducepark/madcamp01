@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   postItemTitle: {
-    fontSize: 16,
+    fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 4,
     color: '#333',

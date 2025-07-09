@@ -290,8 +290,11 @@ export function TabOneScreen() {
       </View>
       
       <View style={styles.rightSideContentContainer}>
-        {item.image_url && (
+        {item.image_url ? (
           <Image source={{ uri: item.image_url }} style={styles.itemImage} />
+        ) : (
+          // 이미지가 없을 때 투명한 플레이스홀더 View를 배치
+          <View style={styles.itemImagePlaceholder} />
         )}
         <View style={styles.likesCountContainer}>
           <Ionicons name="heart" size={16} color={COLOR_PALETTE.LIKE_COLOR} />
@@ -418,7 +421,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   textDong: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     textAlign: 'left',
     paddingVertical: 0,
@@ -513,8 +516,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#eee',
     marginBottom: 4,
   },
+  // 이미지가 없을 때 사용할 플레이스홀더 스타일 추가
+  itemImagePlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 8,
+    backgroundColor: 'transparent', // 투명하게 설정
+    marginBottom: 4,
+  },
   itemTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     // marginBottom: 4, // 이 부분은 이제 titleAndNicknameContainer에서 관리
   },
@@ -589,7 +600,7 @@ const styles = StyleSheet.create({
   },
   // nicknameRight 대신 nicknameText로 변경하고, 스타일 조정
   nicknameText: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: 'bold',
     color: COLOR_PALETTE.LIKE_COLOR,
     marginTop: 2, // 제목 아래 닉네임이 오도록 약간의 마진 추가
