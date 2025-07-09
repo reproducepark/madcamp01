@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, Alert, Text } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, Text, Animated } from 'react-native'; // Animated 임포트
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import BottomSheet from '@gorhom/bottom-sheet';
+import BottomSheet from '@gorhom/bottom-sheet'; // 'bottom-sheet'를 'bottom-sheets'로 수정했습니다.
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getPostsInViewport, NearByViewportResponse, Viewport } from '../../api/post';
 import MapComponent from '../components/MapComponent';
 import BottomSheetContent from '../components/BottomSheetContent';
-import MapView, { Region } from 'react-native-maps'; // MapView와 Region import
+import MapView, { Region } from 'react-native-maps';
 
 export function TabThreeScreen() {
   const [currentRegion, setCurrentRegion] = useState<null | Region>(null);
@@ -15,13 +15,35 @@ export function TabThreeScreen() {
   const [posts, setPosts] = useState<NearByViewportResponse[]>([]);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null); // 사용자 현재 위치 저장
+  const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const mapRef = useRef<MapView>(null);
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
+  // 애니메이션을 위한 useRef 추가
+  const loadPostsButtonOpacity = useRef(new Animated.Value(1)).current;
+  const myLocationButtonOpacity = useRef(new Animated.Value(1)).current;
+
   const snapPoints = ['30%', '40%', '80%'];
+
+  // 바텀 시트 상태 변경에 따라 버튼 애니메이션 실행
+  useEffect(() => {
+    // '이 지역 검색하기' 버튼 애니메이션
+    Animated.timing(loadPostsButtonOpacity, {
+      toValue: isBottomSheetOpen ? 0 : 1, // 바텀시트가 열리면 0 (투명), 닫히면 1 (불투명)
+      duration: 300, // 0.3초
+      useNativeDriver: true,
+    }).start();
+
+    // '현재 위치로' 버튼 애니메이션
+    Animated.timing(myLocationButtonOpacity, {
+      toValue: isBottomSheetOpen ? 0 : 1, // 바텀시트가 열리면 0 (투명), 닫히면 1 (불투명)
+      duration: 300, // 0.3초
+      useNativeDriver: true,
+    }).start();
+  }, [isBottomSheetOpen, loadPostsButtonOpacity, myLocationButtonOpacity]);
+
 
   // 초기 위치 설정 로직 및 현재 위치 저장
   useEffect(() => {
@@ -153,21 +175,26 @@ export function TabThreeScreen() {
           />
 
           {/* 바텀시트가 열려있지 않을 때만 "이 지역 검색하기" 버튼 표시 */}
-          {!isBottomSheetOpen && (
-            <TouchableOpacity
-              style={styles.loadPostsButton}
-              onPress={handleLoadPosts}
-              disabled={loadingPosts}
-            >
-              {loadingPosts ? (
-                <ActivityIndicator size="small" color="#007AFF" />
-              ) : (
-                <Text style={styles.loadPostsButtonText}>
-                  <Ionicons name="location-outline" size={16} color="#007AFF" /> 이 지역 검색하기
-                </Text>
-              )}
-            </TouchableOpacity>
-          )}
+          {/* Animated.View 로 감싸서 opacity 애니메이션 적용 */}
+          <Animated.View style={[styles.loadPostsButtonContainer, { opacity: loadPostsButtonOpacity }]}>
+            {/* isBottomSheetOpen 조건은 Animated.View의 opacity가 0일 때 터치 이벤트를 막기 위해 유지 */}
+            {!isBottomSheetOpen && (
+              <TouchableOpacity
+                style={styles.loadPostsButton}
+                onPress={handleLoadPosts}
+                disabled={loadingPosts}
+              >
+                {loadingPosts ? (
+                  <ActivityIndicator size="small" color="#007AFF" />
+                ) : (
+                  <Text style={styles.loadPostsButtonText}>
+                    <Ionicons name="location-outline" size={16} color="#007AFF" /> 이 지역 검색하기
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </Animated.View>
+
 
           {error && (
             <View style={styles.errorContainer}>
@@ -176,14 +203,19 @@ export function TabThreeScreen() {
           )}
 
           {/* 바텀시트가 열려있지 않을 때만 "현재 위치로" 버튼 표시 */}
-          {initialMapRegion && !isBottomSheetOpen && (
-            <TouchableOpacity
-              style={styles.myLocationButton} // 스타일 분리
-              onPress={moveToCurrentLocation}
-            >
-              <Ionicons name="locate" size={28} color="#007AFF" />
-            </TouchableOpacity>
-          )}
+          {/* Animated.View 로 감싸서 opacity 애니메이션 적용 */}
+          <Animated.View style={[styles.myLocationButtonContainer, { opacity: myLocationButtonOpacity }]}>
+            {/* isBottomSheetOpen 조건은 Animated.View의 opacity가 0일 때 터치 이벤트를 막기 위해 유지 */}
+            {initialMapRegion && !isBottomSheetOpen && (
+              <TouchableOpacity
+                style={styles.myLocationButton}
+                onPress={moveToCurrentLocation}
+              >
+                <Ionicons name="locate" size={28} color="#007AFF" />
+              </TouchableOpacity>
+            )}
+          </Animated.View>
+
 
           {/* 바텀시트 열기/닫기 버튼 (기존 위치 유지) */}
           {initialMapRegion && (
@@ -223,10 +255,14 @@ const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
   },
-  loadPostsButton: {
+  // '이 지역 검색하기' 버튼 컨테이너 추가 및 스타일 분리
+  loadPostsButtonContainer: {
     position: 'absolute',
     top: 60,
     alignSelf: 'center',
+    zIndex: 1,
+  },
+  loadPostsButton: {
     backgroundColor: '#fff',
     paddingVertical: 10,
     paddingHorizontal: 15,
@@ -238,7 +274,6 @@ const styles = StyleSheet.create({
     elevation: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    zIndex: 1,
   },
   loadPostsButtonText: {
     fontSize: 16,
@@ -246,7 +281,6 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     marginLeft: 5,
   },
-  // '목록 보기/숨기기' 버튼 컨테이너를 분리하여 하단 중앙에 배치
   toggleListButtonContainer: {
     position: 'absolute',
     bottom: 20,
@@ -269,20 +303,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
   },
-  // '현재 위치로' 버튼 스타일 변경 (아이콘만, 오른쪽 하단)
-  myLocationButton: {
+  // '현재 위치로' 버튼 컨테이너 추가 및 스타일 분리
+  myLocationButtonContainer: {
     position: 'absolute',
-    bottom: 90, // '목록 보기' 버튼 위에 위치하도록 조정
+    bottom: 90,
     right: 20,
-    backgroundColor: '#fff', // 흰색 배경
-    padding: 12, // 아이콘 크기에 맞춰 패딩 조정
-    borderRadius: 50, // 원형 버튼
+    zIndex: 1,
+  },
+  myLocationButton: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 50,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
-    zIndex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
