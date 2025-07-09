@@ -6,7 +6,7 @@ import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getPostsInViewport, NearByViewportResponse, Viewport } from '../../api/post';
 import MapComponent from '../components/MapComponent';
-import BottomSheetContent from '../components/BottomSheetContent';
+import BottomSheetContent from '../components/BottomSheetContent'; // 수정된 BottomSheetContent 임포트
 import MapView, { Region } from 'react-native-maps';
 
 // 사용할 색상 팔레트를 상수로 정의합니다.
@@ -35,13 +35,16 @@ export function TabThreeScreen() {
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const mapRef = useRef<MapView>(null);
+  // BottomSheetContent의 ref를 추가합니다.
+  const bottomSheetContentRef = useRef<any>(null); // BottomSheetContent의 scrollToTop 메서드를 호출하기 위함
+
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
   // 애니메이션을 위한 useRef 추가
   const loadPostsButtonOpacity = useRef(new Animated.Value(1)).current;
   const myLocationButtonOpacity = useRef(new Animated.Value(1)).current;
 
-  const snapPoints = ['30%', '40%', '80%'];
+  const snapPoints = ['30%', '50%', '70%'];
 
   // 바텀 시트 상태 변경에 따라 버튼 애니메이션 실행
   useEffect(() => {
@@ -54,7 +57,7 @@ export function TabThreeScreen() {
 
     // '현재 위치로' 버튼 애니메이션
     Animated.timing(myLocationButtonOpacity, {
-      toValue: isBottomSheetOpen ? 0 : 1, // 바텀시트가 열리면 0 (투명), 닫히면 1 (불투명)
+      toValue: isBottomSheetOpen ? 0 : 1, // 바텀시트가 열리면 0 (투명) 또는 1 (불투명)
       duration: 300, // 0.3초
       useNativeDriver: true,
     }).start();
@@ -115,11 +118,12 @@ export function TabThreeScreen() {
       setPosts(fetchedPosts);
       console.log("가져온 게시글:", fetchedPosts);
 
+      // 게시글을 성공적으로 가져온 후에 바텀시트 열기
       if (bottomSheetRef.current) {
         if (fetchedPosts.length > 0) {
-          bottomSheetRef.current.snapToIndex(1); // 게시글이 있으면 40%로 열기
+          bottomSheetRef.current.snapToIndex(0); // 게시글이 있으면 첫 번째 스냅포인트(30%)로 열기
         } else {
-          bottomSheetRef.current.snapToIndex(2); // 게시글이 없으면 80%로 열기 (안내문 표시)
+          bottomSheetRef.current.snapToIndex(1); // 게시글이 없으면 두 번째 스냅포인트(50%)로 열기 (안내문 표시)
         }
       }
 
@@ -135,24 +139,33 @@ export function TabThreeScreen() {
   const handleMarkerPress = useCallback((post: NearByViewportResponse) => {
     console.log("마커 클릭:", post.title);
     if (bottomSheetRef.current) {
-      bottomSheetRef.current?.snapToIndex(1); // 40%
+      bottomSheetRef.current?.snapToIndex(0); // 첫 번째 스냅포인트(30%)로 열기
+      // 마커 클릭 시에도 스크롤 맨 위로 이동
+      if (bottomSheetContentRef.current) {
+        bottomSheetContentRef.current.scrollToTop();
+      }
     }
-    // TODO: FlatList에서 해당 아이템으로 스크롤하는 로직 추가
   }, []);
+
+  // 바텀 시트 상태 변경 핸들러
+  const handleBottomSheetChanges = useCallback((index: number) => {
+    setIsBottomSheetOpen(index > -1); // 바텀 시트가 닫힌 상태(-1)가 아니면 열린 것으로 간주
+
+    // 바텀 시트가 열릴 때마다 목록을 맨 위로 스크롤합니다.
+    if (index > -1 && bottomSheetContentRef.current) {
+      bottomSheetContentRef.current.scrollToTop();
+    }
+  }, []);
+
 
   const toggleBottomSheet = useCallback(() => {
     if (isBottomSheetOpen) {
       bottomSheetRef.current?.close();
     } else {
-      if (bottomSheetRef.current) {
-        if (posts.length > 0) {
-          bottomSheetRef.current?.snapToIndex(1);
-        } else {
-          bottomSheetRef.current?.snapToIndex(2);
-        }
-      }
+      // 바텀시트가 닫혀있을 때 '목록 보기'를 누르면 게시글을 새로고침하고 엽니다.
+      handleLoadPosts();
     }
-  }, [isBottomSheetOpen, posts.length]);
+  }, [isBottomSheetOpen, handleLoadPosts]);
 
   // 현재 위치로 지도를 이동시키는 함수
   const moveToCurrentLocation = useCallback(() => {
@@ -250,12 +263,13 @@ export function TabThreeScreen() {
 
           <BottomSheet
             ref={bottomSheetRef}
-            index={-1}
+            index={-1} // 초기에는 바텀 시트가 닫힌 상태로 시작합니다.
             snapPoints={snapPoints}
             enablePanDownToClose={true}
-            onChange={(index) => setIsBottomSheetOpen(index > -1)}
+            onChange={handleBottomSheetChanges} // 여기에서 상태 변경을 감지합니다.
           >
             <BottomSheetContent
+              ref={bottomSheetContentRef}
               posts={posts}
               loadingPosts={loadingPosts}
               bottomSheetRef={bottomSheetRef}

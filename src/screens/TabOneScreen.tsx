@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end', // 모든 항목의 하단을 정렬
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 1,
     borderBottomColor: COLOR_PALETTE.BORDER_COLOR, // 변경: 무채색 유지
     backgroundColor: COLOR_PALETTE.WHITE, // 변경: 흰색은 유지
   },

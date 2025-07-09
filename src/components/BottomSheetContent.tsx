@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, forwardRef, useImperativeHandle, useRef } from 'react'; // forwardRef, useImperativeHandle, useRef 추가
 import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
@@ -11,28 +11,35 @@ interface BottomSheetContentProps {
   bottomSheetRef: React.RefObject<BottomSheet | null>;
 }
 
-// TabOneScreen에서 가져온 시간 포맷팅 함수
-const formatRelativeTime = (dateString: string) => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const nineHoursInMilliseconds = 9 * 60 * 60 * 1000;
-  const diffMinutes = Math.floor((now.getTime() - date.getTime() - nineHoursInMilliseconds) / (1000 * 60));
-
-  if (diffMinutes < 1) return '방금 전';
-  if (diffMinutes < 60) return `${diffMinutes}분 전`;
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}시간 전`;
-
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}일 전`;
-
-  // 일주일 이상 지난 경우, 원래 날짜 형식으로 표시
-  return date.toLocaleDateString('ko-KR');
-};
-
-const BottomSheetContent: React.FC<BottomSheetContentProps> = ({ posts, loadingPosts }) => {
+// 부모 컴포넌트에서 이 컴포넌트의 메소드를 호출할 수 있도록 forwardRef 사용
+const BottomSheetContent = forwardRef<any, BottomSheetContentProps>(({ posts, loadingPosts }, ref) => {
   const navigation = useNavigation<NavigationProp<TabThreeStackParamList>>();
+  const flatListRef = useRef<React.ElementRef<typeof BottomSheetFlatList> | null>(null); // FlatList의 ref 생성
+
+  // 부모 컴포넌트에서 호출할 수 있는 함수 정의
+  useImperativeHandle(ref, () => ({
+    scrollToTop: () => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    },
+  }));
+
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const nineHoursInMilliseconds = 9 * 60 * 60 * 1000;
+    const diffMinutes = Math.floor((now.getTime() - date.getTime() - nineHoursInMilliseconds) / (1000 * 60));
+
+    if (diffMinutes < 1) return '방금 전';
+    if (diffMinutes < 60) return `${diffMinutes}분 전`;
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}시간 전`;
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}일 전`;
+
+    return date.toLocaleDateString('ko-KR');
+  };
 
   const renderPostItem = useCallback(({ item }: { item: NearByViewportResponse }) => (
     <TouchableOpacity
@@ -82,6 +89,7 @@ const BottomSheetContent: React.FC<BottomSheetContentProps> = ({ posts, loadingP
 
   return (
     <BottomSheetFlatList
+      ref={flatListRef} // flatListRef 할당
       data={posts}
       renderItem={renderPostItem}
       keyExtractor={(item) => item.id.toString()}
@@ -92,7 +100,7 @@ const BottomSheetContent: React.FC<BottomSheetContentProps> = ({ posts, loadingP
       showsVerticalScrollIndicator={false}
     />
   );
-};
+});
 
 const styles = StyleSheet.create({
   bottomSheetFlatList: {
