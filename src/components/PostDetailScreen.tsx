@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useLayoutEffect } from 'react';
-import { Modal, TouchableOpacity, View, Text, StyleSheet, ActivityIndicator, Image, Dimensions, Pressable, Alert, TextInput, RefreshControl, Platform, Keyboard } from 'react-native'; // Keyboard 임포트 추가
+import { Modal, TouchableOpacity, View, Text, StyleSheet, ActivityIndicator, Image, Dimensions, Pressable, Alert, TextInput, RefreshControl, Platform, Keyboard } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getPostById, PostByIdResponse, deletePost, updatePost, getCommentsByPostId, createComment, updateComment, deleteComment, Comment, ToggleLikePayload, toggleLike, getLikesCountByPostId, getLikeStatusForUser, LikesCountResponse, LikeStatusResponse } from '../../api/post';
 import { RouteProp } from '@react-navigation/native';
@@ -44,6 +44,8 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  // userAdminDong 상태 추가
+  const [userAdminDong, setUserAdminDong] = useState<string | null>(null);
   const [isDeleteConfirmModalVisible, setIsDeleteConfirmModalVisible] = useState<boolean>(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState<boolean>(false);
   const [isImageModalVisible, setIsImageModalVisible] = useState<boolean>(false);
@@ -65,15 +67,17 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
   useEffect(() => {
-    const fetchCurrentUserId = async () => {
+    const fetchUserData = async () => {
       try {
         const userId = await AsyncStorage.getItem('userID');
+        const adminDong = await AsyncStorage.getItem('userAdminDong'); // userAdminDong 불러오기
         setCurrentUserId(userId);
+        setUserAdminDong(adminDong); // 상태 업데이트
       } catch (e) {
-        console.error("Failed to fetch current user ID:", e);
+        console.error("Failed to fetch user data:", e);
       }
     };
-    fetchCurrentUserId();
+    fetchUserData();
   }, []);
 
     useLayoutEffect(() => {
@@ -215,6 +219,13 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
       Alert.alert('오류', '로그인된 사용자 정보가 없습니다.');
       return;
     }
+    // userAdminDong과 post.admin_dong이 다르면 댓글 작성을 막음
+    if (userAdminDong !== post?.admin_dong) {
+        Alert.alert('알림', '이 게시물은 다른 동네 게시물입니다. 댓글을 작성할 수 없습니다.');
+        setNewCommentText(''); // 입력 필드 초기화
+        Keyboard.dismiss(); // 키보드 닫기
+        return;
+    }
     if (newCommentText.trim() === '') {
       Alert.alert('알림', '댓글 내용을 입력해주세요.');
       return;
@@ -320,6 +331,8 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
   }
 
   const isMyPost = currentUserId === post.user_id;
+  // userAdminDong과 게시물의 admin_dong을 비교하여 댓글 작성 가능 여부 판단
+  const userCanComment = userAdminDong === post.admin_dong;
 
   // 이미지 유무에 따른 extraScrollHeight 및 extraHeight 값 설정
   const imageExtraScrollHeight = Platform.OS === 'ios' ? 60 : 200; // 이미지가 있을 때
@@ -334,8 +347,8 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
   return (
     <KeyboardAwareScrollView
       style={styles.container}
-      extraScrollHeight={currentExtraScrollHeight} // 동적으로 값 적용
-      extraHeight={currentExtraHeight} // 동적으로 값 적용
+      extraScrollHeight={currentExtraScrollHeight}
+      extraHeight={currentExtraHeight}
       enableOnAndroid={true}
       keyboardShouldPersistTaps="handled"
       refreshControl={
@@ -413,13 +426,18 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
           <View style={styles.commentInputContainer}>
             <TextInput
               style={styles.commentInput}
-              placeholder="댓글을 입력하세요..."
+              placeholder={userCanComment ? "댓글을 입력하세요..." : "우리 동네에만 댓글을 남길 수 있어요."}
               value={newCommentText}
               onChangeText={setNewCommentText}
               returnKeyType="done"
-              onSubmitEditing={handleCreateComment}
+              onSubmitEditing={userCanComment ? handleCreateComment : undefined} // 조건부 활성화
+              editable={userCanComment} // 댓글 작성 가능 여부에 따라 editable 속성 변경
             />
-            <TouchableOpacity style={styles.submitCommentButton} onPress={handleCreateComment}>
+            <TouchableOpacity 
+                style={[styles.submitCommentButton, !userCanComment && styles.disabledButton]} 
+                onPress={handleCreateComment} 
+                disabled={!userCanComment} // 댓글 작성 가능 여부에 따라 disabled 속성 변경
+            >
               <Text style={styles.submitCommentButtonText}>작성</Text>
             </TouchableOpacity>
           </View>
@@ -439,8 +457,8 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
                       style={styles.editingCommentInput}
                       value={editingCommentText}
                       onChangeText={setEditingCommentText}
-                      returnKeyType="done" // '완료' 버튼 표시
-                      onSubmitEditing={() => handleUpdateComment(comment.id)} // '완료' 버튼 누르면 댓글 수정
+                      returnKeyType="done"
+                      onSubmitEditing={() => handleUpdateComment(comment.id)}
                     />
                     <View style={styles.editingCommentButtons}>
                       <TouchableOpacity style={styles.editSaveButton} onPress={() => handleUpdateComment(comment.id)}>
@@ -667,7 +685,7 @@ const styles = StyleSheet.create({
   commentInput: {
     flex: 1,
     padding: 10,
-    height: 50, // 단일 라인으로 높이 고정
+    height: 50,
     fontSize: 16,
     color: '#555',
   },
@@ -739,7 +757,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     fontSize: 16,
-    height: 50, // 단일 라인으로 높이 고정
+    height: 50,
     marginBottom: 10,
   },
   editingCommentButtons: {
@@ -785,5 +803,9 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontSize: 16,
     color: '#666',
+  },
+  // 비활성화된 버튼 스타일
+  disabledButton: {
+    backgroundColor: '#ccc', // 비활성화되었을 때 색상 변경
   },
 });
