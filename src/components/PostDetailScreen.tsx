@@ -5,7 +5,7 @@ import { getPostById, PostByIdResponse, deletePost, updatePost, getCommentsByPos
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'; // KeyboardAwareScrollView 임포트
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 import { TabOneStackParamList } from '../navigation/TabOneStack';
 import { CustomConfirmModal } from './CustomConfirmModal';
@@ -77,13 +77,10 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
   }, []);
 
     useLayoutEffect(() => {
-    // 탭 내비게이터에 접근하여 tabBarStyle을 변경합니다.
-    // 이는 TabOneStack의 부모인 Tab.Navigator의 옵션을 변경하는 것입니다.
     navigation.getParent()?.setOptions({
       tabBarStyle: { display: 'none' },
     });
 
-    // 컴포넌트 언마운트 시 (뒤로가기 등) 탭 바를 다시 보이도록 클린업 함수 반환
     return () => {
       navigation.getParent()?.setOptions({
         tabBarStyle: {
@@ -95,10 +92,10 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
           shadowOffset: { width: 0, height: -3 },
           height: 75,
           paddingBottom: 5,
-        }, // 원래 탭 바 스타일로 되돌립니다.
+        },
       });
     };
-  }, [navigation]); // navigation 객체가 변경될 때만 다시 실행
+  }, [navigation]);
 
   const fetchPostDetails = async () => {
     try {
@@ -138,7 +135,6 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
     }
   };
 
-  // 모든 데이터를 새로고침하는 함수
   const refreshAllData = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([
@@ -147,20 +143,18 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
       fetchLikesInfo()
     ]);
     setRefreshing(false);
-  }, [postId, currentUserId]); // currentUserId가 변경될 때 좋아요 상태를 다시 불러오도록 추가
+  }, [postId, currentUserId]);
 
   useEffect(() => {
-    refreshAllData(); // 초기 로드 시에도 사용
+    refreshAllData();
   }, [refreshAllData]);
 
-  // 게시물 편집 모달을 띄우는 함수
   const handleEdit = () => {
     if (post) {
       setIsEditModalVisible(true);
     }
   };
 
-  // 게시물 수정 API 호출 및 상태 업데이트
   const handleUpdatePost = async (title: string, content: string, imageUri?: string, imageDeleteFlag?: boolean, imageUpdateFlag?: boolean) => {
     if (!post || !currentUserId) {
       Alert.alert('오류', '게시물 정보 또는 사용자 ID가 없습니다.');
@@ -178,7 +172,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
         image_url_update_flag: imageUpdateFlag || false,
       });
       setIsEditModalVisible(false);
-      await refreshAllData(); // 수정 후 게시물 상세 정보 새로고침
+      await refreshAllData();
     } catch (err: any) {
       console.error("게시물 수정 실패:", err);
       Alert.alert('수정 실패', `게시물 수정에 실패했습니다: ${err.message}`);
@@ -187,12 +181,10 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
     }
   };
 
-  // 삭제 확인 모달을 띄우는 함수
   const handleDeletePress = () => {
     setIsDeleteConfirmModalVisible(true);
   };
 
-  // 게시물 삭제 API 호출 및 상태 업데이트
   const confirmDelete = async () => {
     setIsDeleteConfirmModalVisible(false);
     if (!post || !currentUserId) {
@@ -208,19 +200,16 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
     }
   };
 
-  // 이미지 클릭 시 전체 화면 모달을 띄우는 함수
   const handleImagePress = (uri: string) => {
     setSelectedImageUri(uri);
     setIsImageModalVisible(true);
   };
 
-  // 전체 화면 이미지 모달을 닫는 함수
   const handleCloseImageModal = () => {
     setIsImageModalVisible(false);
     setSelectedImageUri(null);
   };
 
-  // 댓글 작성
   const handleCreateComment = async () => {
     if (!currentUserId) {
       Alert.alert('오류', '로그인된 사용자 정보가 없습니다.');
@@ -233,20 +222,18 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
     try {
       await createComment(postId, { userId: currentUserId, content: newCommentText });
       setNewCommentText('');
-      fetchComments(); // 댓글 목록 새로고침
+      fetchComments();
     } catch (err: any) {
       console.error("댓글 작성 실패:", err);
       Alert.alert('댓글 작성 실패', `댓글 작성에 실패했습니다: ${err.message}`);
     }
   };
 
-  // 댓글 수정 시작
   const handleEditComment = (comment: Comment) => {
     setEditingCommentId(comment.id);
     setEditingCommentText(comment.content);
   };
 
-  // 댓글 수정 완료
   const handleUpdateComment = async (commentId: number) => {
     if (!currentUserId) {
       Alert.alert('오류', '로그인된 사용자 정보가 없습니다.');
@@ -260,20 +247,18 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
       await updateComment(commentId, { userId: currentUserId, content: editingCommentText });
       setEditingCommentId(null);
       setEditingCommentText('');
-      fetchComments(); // 댓글 목록 새로고침
+      fetchComments();
     } catch (err: any) {
       console.error("댓글 수정 실패:", err);
       Alert.alert('댓글 수정 실패', `댓글 수정에 실패했습니다: ${err.message}`);
     }
   };
 
-  // 댓글 삭제 확인 모달 띄우기
   const handleDeleteCommentPress = (commentId: number) => {
     setCommentToDeleteId(commentId);
     setIsCommentDeleteConfirmModalVisible(true);
   };
 
-  // 댓글 삭제
   const confirmDeleteComment = async () => {
     setIsCommentDeleteConfirmModalVisible(false);
     if (!currentUserId || commentToDeleteId === null) {
@@ -283,14 +268,13 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
     try {
       await deleteComment(commentToDeleteId, { userId: currentUserId });
       setCommentToDeleteId(null);
-      fetchComments(); // 댓글 목록 새로고침
+      fetchComments();
     } catch (err: any) {
       console.error("댓글 삭제 실패:", err);
       Alert.alert('댓글 삭제 실패', `댓글 삭제에 실패했습니다: ${err.message}`);
     }
   };
 
-  // 좋아요 토글
   const handleToggleLike = async () => {
     if (!currentUserId) {
       Alert.alert('알림', '로그인이 필요합니다.');
@@ -300,7 +284,6 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
       const payload: ToggleLikePayload = { userId: currentUserId };
       const response = await toggleLike(postId, payload);
       setIsLiked(response.liked);
-      // 좋아요 수 즉시 업데이트 ( optimistic update 또는 재조회)
       fetchLikesInfo(); 
     } catch (err: any) {
       console.error("좋아요 토글 실패:", err);
@@ -336,19 +319,29 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
 
   const isMyPost = currentUserId === post.user_id;
 
+  // 이미지 유무에 따른 extraScrollHeight 및 extraHeight 값 설정
+  const imageExtraScrollHeight = Platform.OS === 'ios' ? 60 : 200; // 이미지가 있을 때
+  const noImageExtraScrollHeight = Platform.OS === 'ios' ? 80 : 80;  // 이미지가 없을 때
+
+  const imageExtraHeight = Platform.OS === 'ios' ? 50 : 30; // 이미지가 있을 때
+  const noImageExtraHeight = Platform.OS === 'ios' ? 20 : 10; // 이미지가 없을 때
+
+  const currentExtraScrollHeight = post.image_url ? imageExtraScrollHeight : noImageExtraScrollHeight;
+  const currentExtraHeight = post.image_url ? imageExtraHeight : noImageExtraHeight;
+
   return (
-    <KeyboardAwareScrollView // KeyboardAwareScrollView로 변경
+    <KeyboardAwareScrollView
       style={styles.container}
-      contentContainerStyle={styles.contentContainerForKeyboardAwareScrollView} // 추가
-      extraScrollHeight={Platform.OS === 'ios' ? 0 : 20} // iOS와 Android의 키보드 높이 차이 고려
-      enableOnAndroid={true} // 안드로이드에서 활성화
-      keyboardShouldPersistTaps="handled" // 키보드가 열려 있어도 스크롤뷰 탭 가능
+      extraScrollHeight={currentExtraScrollHeight} // 동적으로 값 적용
+      extraHeight={currentExtraHeight} // 동적으로 값 적용
+      enableOnAndroid={true}
+      keyboardShouldPersistTaps="handled"
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={refreshAllData}
-          colors={['#f4511e']} // 로딩 스피너 색상
-          tintColor={'#f4511e'} // iOS에서 로딩 스피너 색상
+          colors={['#f4511e']}
+          tintColor={'#f4511e'}
         />
       }
     >
@@ -382,7 +375,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
             </TouchableOpacity>
           </View>
 
-          {isMyPost && ( // 내 게시물인 경우에만 편집/삭제 버튼 표시
+          {isMyPost && (
             <View style={styles.buttonContainer}>
               <Pressable
                 onPress={handleEdit}
@@ -506,7 +499,6 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
           cancelText="취소"
         />
 
-        {/* 댓글 삭제 확인 모달 */}
         <CustomConfirmModal
           isVisible={isCommentDeleteConfirmModalVisible}
           title="댓글을 삭제할까요?"
@@ -535,9 +527,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  contentContainerForKeyboardAwareScrollView: { // KeyboardAwareScrollView를 위한 컨테이너 스타일
-    paddingBottom: Platform.OS === 'ios' ? 20 : 0, // iOS 하단 여백 추가 (필요시)
-  },
   centered: {
     flex: 1,
     justifyContent: 'center',
@@ -559,12 +548,11 @@ const styles = StyleSheet.create({
     height: width * 0.8,
     resizeMode: 'cover',
   },
-  contentSection: { // 이전 contentContainer
+  contentSection: {
     backgroundColor: '#FFFFFF',
     borderRadius: 15,
     padding: 20,
     marginHorizontal: 5,
-    // minHeight: height * 0.3, // KeyboardAwareScrollView 사용 시 제거하거나 조절
   },
   title: {
     fontSize: 26,
@@ -644,7 +632,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
     padding: 10,
   },
-  // 댓글 스타일
   commentsSection: {
     marginTop: 20,
     paddingHorizontal: 20,
