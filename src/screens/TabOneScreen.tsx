@@ -1,21 +1,35 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Text, View, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
-import { NearByPostsResponse, createPost, getNearbyPosts } from '../../api/post';
+import { Platform, StatusBar, Text, View, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { NearByPostsResponse, createPost, getNearbyPosts, getLikesCountByPostId } from '../../api/post';
 import { updateUserLocation } from '../../api/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 
-// Import the specific parameter list for TabOne's stack
 import { TabOneStackParamList } from '../navigation/TabOneStack';
-
-// WriteModal 컴포넌트 임포트
 import { WriteModal } from '../components/WriteModal';
-// CustomAlertModal 임포트 추가
 import { CustomAlertModal } from '../components/CustomAlertModal';
-// CustomConfirmModal 임포트 추가 (handleLocationRefreshConfirmation에서도 사용되므로)
 import { CustomConfirmModal } from '../components/CustomConfirmModal';
+
+
+// 사용할 색상 팔레트를 상수로 정의합니다.
+const COLOR_PALETTE = {
+  NAVY_BLUE: "#072ac8", // BLUE_DARK -> NAVY_BLUE
+  SKY_BLUE: "#1e96fc", // BLUE_MEDIUM -> SKY_BLUE
+  LIGHT_BLUE: "#a2d6f9", // BLUE_LIGHT -> LIGHT_BLUE
+  GRAYISH_BROWN_LIGHT: "#6c757d", // MUSTARD_LIGHT -> GRAYISH_BROWN_LIGHT
+  GRAYISH_BROWN_DARK: "#6c757d",  // MUSTARD_DARK -> GRAYISH_BROWN_DARK
+  // 무채색은 그대로 유지
+  WHITE: '#fff',
+  BLACK: '#000',
+  GRAY_DARK: '#333',
+  GRAY_MEDIUM: '#555',
+  GRAY_LIGHT: '#888',
+  GRAY_VERY_LIGHT: '#999',
+  BORDER_COLOR: '#e0e0e0',
+  LIKE_COLOR: '#e71d36', // 좋아요 아이콘 색상
+};
 
 
 export function TabOneScreen() {
@@ -33,6 +47,28 @@ export function TabOneScreen() {
   const [locationUpdateMessage, setLocationUpdateMessage] = useState(''); // 위치 업데이트 메시지 상태
 
   const [currentAdminDong, setCurrentAdminDong] = useState<string | null>(null);
+
+  // 좋아요 개수를 저장할 상태 추가
+  const [likesCount, setLikesCount] = useState<{ [postId: number]: number }>({});
+
+  const formatRelativeTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const nineHoursInMilliseconds = 9 * 60 * 60 * 1000;
+  const diffMinutes = Math.floor((now.getTime() - date.getTime() - nineHoursInMilliseconds ) / (1000 * 60));
+
+  if (diffMinutes < 1) return '방금 전';
+  if (diffMinutes < 60) return `${diffMinutes}분 전`;
+  
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}시간 전`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}일 전`;
+  
+  // 일주일 이상 지난 경우, 원래 날짜 형식으로 표시
+  return date.toLocaleDateString('ko-KR');
+};
 
   useEffect(()=>{
     const loadAdminDong = async () => {
@@ -57,6 +93,24 @@ export function TabOneScreen() {
     loadAdminDong();
   },[]);
 
+  // 좋아요 개수를 가져오는 함수
+  const fetchLikesCount = useCallback(async (postId: number) => {
+    try {
+      const response = await getLikesCountByPostId(postId);
+      setLikesCount(prevCounts => ({
+        ...prevCounts,
+        [postId]: response.likeCount,
+      }));
+    } catch (error) {
+      console.error(`Error fetching likes count for post ${postId}:`, error);
+      setLikesCount(prevCounts => ({
+        ...prevCounts,
+        [postId]: 0, // 오류 발생 시 0으로 설정 또는 다른 기본값 설정
+      }));
+    }
+  }, []);
+
+
   const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
@@ -73,13 +127,18 @@ export function TabOneScreen() {
       const data = await getNearbyPosts(lat, lon);
       setListData(data.nearbyPosts);
 
+      // 각 게시물에 대한 좋아요 개수 가져오기
+      data.nearbyPosts.forEach((post: NearByPostsResponse) => {
+        fetchLikesCount(post.id);
+      });
+
     } catch (e: any) {
       console.error('근처 글 조회 실패:', e);
       Alert.alert('오류', '글을 불러오는 데 실패했습니다: ' + e.message);
     } finally {
       setLoading(false);
     }
-  },[]);
+  },[fetchLikesCount]);
 
   // useFocusEffect 훅을 사용하여 화면이 포커스될 때마다 fetchPosts 실행
   useFocusEffect(
@@ -126,7 +185,6 @@ export function TabOneScreen() {
       // CustomAlertModal 사용
       setLocationUpdateMessage(`위치 정보가 '${updateRes.adminDong}'으로 업데이트 되었습니다.`);
       setIsLocationUpdateAlertVisible(true);
-      // Alert.alert('알림', `위치 정보가 '${updateRes.adminDong}'으로 업데이트되었습니다.`); // 기존 Alert 제거
 
       fetchPosts();
     } catch (e: any) {
@@ -163,16 +221,16 @@ export function TabOneScreen() {
             disabled={isLocationRefreshing}
           >
             {isLocationRefreshing ? (
-              <ActivityIndicator size="small" color="#f4511e" />
+              <ActivityIndicator size="small" color={COLOR_PALETTE.GRAYISH_BROWN_LIGHT} />
             ) : (
-              <Ionicons name="refresh" size={24} color="#f4511e" />
+              <Ionicons name="refresh" size={24} color={COLOR_PALETTE.GRAYISH_BROWN_LIGHT} />
             )}
           </TouchableOpacity>
           <TouchableOpacity
               onPress={handleMyPagePress}
               style={styles.headerButton}
           >
-            <Ionicons name="person-circle" size={24} color="#f4511e" />
+            <Ionicons name="person-circle" size={24} color={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
           </TouchableOpacity>
 
         </View>
@@ -220,14 +278,31 @@ export function TabOneScreen() {
 
   const renderItem = ({ item }: { item: NearByPostsResponse }) => (
     <TouchableOpacity style={styles.postItem} onPress={() => handleItemPress(item.id)}>
-      <View style={[styles.itemContent, !item.image_url && styles.itemContentFullWidth]}>
-        <Text style={styles.itemTitle}>{item.title}</Text>
-        <Text style={styles.itemDescription} numberOfLines={1}>{item.nickname}</Text>
-        <Text style={styles.itemLocation}>{item.admin_dong}</Text>
+      <View style={styles.itemMainContent}>
+        {/* title과 닉네임을 묶는 새로운 View */}
+        <View style={styles.titleAndNicknameContainer}>
+          <Text style={styles.itemTitle}>{item.title}</Text>
+          <Text style={styles.nicknameText}>{item.nickname}</Text>
+        </View>
+        <Text style={styles.dateTimeLocation}>
+          {formatRelativeTime(item.created_at)} · {item.admin_dong}
+        </Text>
       </View>
-      {item.image_url && (
-        <Image source={{ uri: item.image_url }} style={styles.itemImage} />
-      )}
+      
+      <View style={styles.rightSideContentContainer}>
+        {item.image_url ? (
+          <Image source={{ uri: item.image_url }} style={styles.itemImage} />
+        ) : (
+          // 이미지가 없을 때 투명한 플레이스홀더 View를 배치
+          <View style={styles.itemImagePlaceholder} />
+        )}
+        <View style={styles.likesCountContainer}>
+          <Ionicons name="heart" size={16} color={COLOR_PALETTE.LIKE_COLOR} />
+          <Text style={styles.likesCountText}>
+            {likesCount[item.id] !== undefined ? likesCount[item.id] : '로딩중...'}
+          </Text>
+        </View>
+      </View>
     </TouchableOpacity>
   );
 
@@ -236,20 +311,19 @@ export function TabOneScreen() {
       <View style={styles.navContainer}>
 
         <View style={styles.locationInfoContainer}>
-          <Text style={styles.textDong}>
-          {currentAdminDong || '위치 정보 로딩 중...'}
-        
-          </Text>
-          <TouchableOpacity
-              onPress={handleLocationRefreshConfirmation} // CustomConfirmModal을 띄우도록 변경
+            <TouchableOpacity
+              onPress={handleLocationRefreshConfirmation}
               style={styles.inlineRefreshButton}
               disabled={isLocationRefreshing}
             >
-              {isLocationRefreshing ? (
-                <ActivityIndicator size="small" color="#f4511e" />
-              ) : (
-                <Ionicons name="locate-outline" size={25} color="#f4511e" />
-              )}
+                <Text style={styles.textDong}>
+                    {currentAdminDong || '위치 정보 로딩 중...'}
+                </Text>
+                {isLocationRefreshing ? (
+                    <ActivityIndicator size="small" color={COLOR_PALETTE.GRAYISH_BROWN_DARK} style={styles.locationIcon} />
+                ) : (
+                    <Ionicons name="navigate-circle" size={20} color={COLOR_PALETTE.LIKE_COLOR} style={styles.locationIcon} />
+                )}
             </TouchableOpacity>
         </View>
 
@@ -259,7 +333,7 @@ export function TabOneScreen() {
               onPress={handleMyPagePress}
               style={styles.headerButton}
           >
-            <Ionicons name="person-circle" size={35} color="#f4511e" />
+            <Ionicons name="person-circle" size={35} color={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
         </TouchableOpacity>
 
       </View>
@@ -267,7 +341,7 @@ export function TabOneScreen() {
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#f4511e" />
+            <ActivityIndicator size="large" color={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
             <Text style={styles.loadingText}>글을 불러오는 중...</Text>
           </View>
         ) : (
@@ -277,7 +351,7 @@ export function TabOneScreen() {
             contentContainerStyle={styles.listContainer}
             renderItem={renderItem}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
             }
             ListEmptyComponent={() => (
               <View style={styles.noPostsContainer}>
@@ -331,24 +405,29 @@ export function TabOneScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLOR_PALETTE.WHITE,
   },
   navContainer: {
     flexDirection:'row',
     justifyContent:'space-between',
-    padding: 20, 
+    padding: 20,
+    paddingTop: Platform.OS === 'android' ? ((StatusBar.currentHeight || 0) + 20) : 20,
+    alignItems: 'center',
   },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLOR_PALETTE.WHITE,
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
   textDong: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
-    marginLeft: 10,
     textAlign: 'left',
+    paddingVertical: 0,
+    lineHeight: 32,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   text: {
     fontSize: 24,
@@ -358,7 +437,7 @@ const styles = StyleSheet.create({
   },
   subText: {
     fontSize: 16,
-    color: 'gray',
+    color: COLOR_PALETTE.GRAY_LIGHT,
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -375,14 +454,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#fafafa',
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: COLOR_PALETTE.BLACK,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
   itemSubtitle: {
     fontSize: 12,
-    color: '#999',
+    color: COLOR_PALETTE.GRAY_VERY_LIGHT,
     marginTop: 4,
   },
   textContainer: {
@@ -400,54 +479,68 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     right: 20,
     bottom: 20,
-    backgroundColor: '#f4511e',
+    backgroundColor: COLOR_PALETTE.LIKE_COLOR,
     borderRadius: 28,
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: COLOR_PALETTE.BLACK,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   fabText: {
     fontSize: 24,
-    color: 'white',
+    color: COLOR_PALETTE.WHITE,
   },
   postItem: {
     flexDirection: 'row',
-    alignItems: 'center',
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e0e0e0',
-    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR_PALETTE.BORDER_COLOR,
+    backgroundColor: COLOR_PALETTE.WHITE,
+  },
+  itemMainContent: { 
+    flex: 1,
+    flexGrow: 1, 
+    justifyContent: 'space-between', 
+    minHeight: 70, 
+  },
+  rightSideContentContainer: { 
+    marginLeft: 12,
+    alignItems: 'flex-end', 
+    justifyContent: 'flex-end', 
   },
   itemImage: {
     width: 70,
     height: 70,
     borderRadius: 8,
     backgroundColor: '#eee',
-    marginLeft: 12,
+    marginBottom: 4,
   },
-  itemContent: {
-    flex: 1,
-    paddingLeft: 20,
-  },
-  itemContentFullWidth: {
-    marginRight: 0,
-    paddingRight: 20,
+  // 이미지가 없을 때 사용할 플레이스홀더 스타일 추가
+  itemImagePlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 8,
+    backgroundColor: 'transparent', // 투명하게 설정
+    marginBottom: 4,
   },
   itemTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 4,
+    // marginBottom: 4, // 이 부분은 이제 titleAndNicknameContainer에서 관리
+  },
+  // 새로운 스타일 추가: title과 닉네임을 감싸는 컨테이너
+  titleAndNicknameContainer: {
+    marginBottom: 4, // 제목과 닉네임 블록 전체의 하단 마진
   },
   itemDescription: {
     fontSize: 13,
-    color: '#555',
+    color: COLOR_PALETTE.GRAY_MEDIUM,
     marginBottom: 4,
   },
   itemLocation: {
     fontSize: 12,
-    color: '#999',
+    color: COLOR_PALETTE.GRAY_VERY_LIGHT,
   },
   noPostsContainer: {
     flex: 1,
@@ -459,12 +552,12 @@ const styles = StyleSheet.create({
   noPostsText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#555',
+    color: COLOR_PALETTE.GRAY_MEDIUM,
     marginBottom: 5,
   },
   noPostsSubText: {
     fontSize: 14,
-    color: '#888',
+    color: COLOR_PALETTE.GRAY_LIGHT,
     textAlign: 'center',
   },
   loadingContainer: {
@@ -476,12 +569,12 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#555',
+    color: COLOR_PALETTE.GRAY_MEDIUM,
   },
   adminDongText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#f4511e',
+    color: COLOR_PALETTE.GRAYISH_BROWN_DARK,
     textAlign: 'center',
     marginBottom: 10,
   },
@@ -490,7 +583,12 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   inlineRefreshButton: {
-    paddingLeft:5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 10,
+  },
+  locationIcon: {
+    marginLeft: 5,
   },
   headerRightContainer: {
     flexDirection: 'row',
@@ -499,5 +597,35 @@ const styles = StyleSheet.create({
   locationInfoContainer:{
     flexDirection:'row',
     alignItems:'center',
-  }
+  },
+  // nicknameRight 대신 nicknameText로 변경하고, 스타일 조정
+  nicknameText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLOR_PALETTE.LIKE_COLOR,
+    marginTop: 2, // 제목 아래 닉네임이 오도록 약간의 마진 추가
+  },
+  // 기존 nicknameContainer는 제거 (이제 titleAndNicknameContainer가 대체)
+  nicknameContainer: { 
+    // 이 스타일은 더 이상 사용되지 않습니다.
+  },
+  metaInfoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  dateTimeLocation: {
+    fontSize: 12,
+    color: COLOR_PALETTE.GRAY_VERY_LIGHT,
+  },
+  likesCountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  likesCountText: {
+    fontSize: 12,
+    color: COLOR_PALETTE.GRAYISH_BROWN_LIGHT,
+    marginLeft: 4,
+  },
 });

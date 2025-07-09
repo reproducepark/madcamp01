@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#e0e0e0', // 취소 버튼 색상
   },
   buttonConfirm: {
-    backgroundColor: '#ff6f61', // 삭제 버튼 색상 (이미지의 주황색 계열)
+    backgroundColor: '#e71d36', // 삭제 버튼 색상 (이미지의 주황색 계열)
   },
   textStyleCancel: {
     color: '#333',

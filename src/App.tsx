@@ -4,11 +4,11 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Image, Text, View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Location from 'expo-location'; // expo-location 임포트 추가
+import * as Location from 'expo-location';
 
 import { TabOneNavigator } from './navigation/TabOneStack';
 import { TabTwoNavigator } from './navigation/TabTwoStack';
-import { TabThreeNavigator } from './navigation/TabThreeStack'; // <--- NEW: TabThree 내비게이터 임포트
+import { TabThreeNavigator } from './navigation/TabThreeStack';
 import OnboardingScreen from './screens/OnboardingScreen';
 import { OnboardResponse } from '../api/post';
 declare global {
@@ -22,8 +22,8 @@ if (__DEV__) {
 
 // Bottom Tab Navigator의 파라미터 목록을 정의합니다.
 export type RootTabParamList = {
-  홈: undefined; // 이 탭은 TabOneNavigator를 렌더링
-  더보기: undefined; // <--- CHANGED: 이 탭은 TabTwoNavigator를 렌더링
+  홈: undefined;
+  더보기: undefined;
   둘러보기: undefined;
 };
 
@@ -119,8 +119,8 @@ export default function App() {
             switch (route.name) {
               case '홈':
                 iconSource = focused
-                  ? require('../assets/icons/home.png') // 활성화된 아이콘
-                  : require('../assets/icons/home_u.png'); // 비활성화된 아이콘
+                  ? require('../assets/icons/home.png')
+                  : require('../assets/icons/home_u.png');
                 break;
               case '더보기':
                 iconSource = focused
@@ -136,7 +136,7 @@ export default function App() {
             return (
             <Image
               source={iconSource}
-              style={{ width: size, height: size, tintColor: color }} // 사이즈와 색상 적용
+              style={{ width: size, height: size, tintColor: color }}
             />
           );
           },
@@ -155,7 +155,7 @@ export default function App() {
             fontSize: 12,
           },
           headerStyle: {
-            backgroundColor: '#f4511e',
+            backgroundColor: '#ffc600', // <-- '#f4511e' (주황)에서 '#ffc600' (머스타드)로 변경
           },
           headerTintColor: '#fff',
           headerTitleStyle: {
@@ -175,8 +175,8 @@ export default function App() {
         />
         <Tab.Screen
           name="둘러보기"
-          component={TabThreeNavigator} // <--- CHANGED: TabThreeNavigator 사용
-          options={{ title: '둘러보기', headerShown: false }} // <--- CHANGED: 스택 내에서 헤더를 관리하므로 false로 설정
+          component={TabThreeNavigator}
+          options={{ title: '둘러보기', headerShown: false }}
         />
       </Tab.Navigator>
     </NavigationContainer>

@@ -1,4 +1,4 @@
-//api/post.ts
+// api/post.ts
 
 import { BASE_URL } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -32,7 +32,7 @@ export interface OnboardResponse {
 }
 
 export interface NewPostResponse {
-  postId: string;
+  postId: number; // 서버에서 Number()로 반환하도록 수정했으므로 number로 변경
   user_id: string;
   title: string;
   content: string;
@@ -122,8 +122,73 @@ export interface PostsbyUserIdResponse {
   nickname: string;
 }
 
+// --- 댓글 관련 인터페이스 ---
+export interface Comment {
+  id: number;
+  post_id: number;
+  user_id: string;
+  content: string;
+  created_at: string;
+  nickname: string; // 댓글 작성자 닉네임 포함
+}
+
+export interface CreateCommentPayload {
+  userId: string;
+  content: string;
+}
+
+export interface CreateCommentResponse {
+  message: string;
+  commentId: number;
+  postId: number;
+  userId: string;
+  content: string;
+}
+
+export interface UpdateCommentPayload {
+  userId: string;
+  content: string;
+}
+
+export interface UpdateCommentResponse {
+  message: string;
+  commentId: number;
+}
+
+export interface DeleteCommentPayload {
+  userId: string;
+}
+
+export interface DeleteCommentResponse {
+  message: string;
+  commentId: number;
+}
+
+// --- 좋아요 관련 인터페이스 ---
+export interface ToggleLikePayload {
+  userId: string;
+}
+
+export interface ToggleLikeResponse {
+  message: string;
+  liked: boolean; // 좋아요 상태 (true: 좋아요 눌림, false: 좋아요 취소됨)
+}
+
+export interface LikesCountResponse {
+  message: string;
+  postId: number;
+  likeCount: number;
+}
+
+export interface LikeStatusResponse {
+  message: string;
+  postId: number;
+  userId: string;
+  liked: boolean;
+}
+
+
 export async function createPost(post: NewPost): Promise<NewPostResponse> {
-    // const { userId, title, content, lat, lon, adminDong, upperAdminDong, imageUri } = post;
     const { userId, title, content, lat, lon, image_uri} = post;
     const formData = new FormData();
 
@@ -369,4 +434,191 @@ export async function getPostsByUserId(userId: string): Promise<PostsbyUserIdRes
   else{
     return [];
   }
+}
+
+// --- 새롭게 추가된 댓글 API 함수 ---
+
+/**
+ * 특정 게시글에 댓글을 작성합니다.
+ * @param postId 댓글을 작성할 게시글의 ID
+ * @param payload 댓글 내용 및 작성자 ID
+ * @returns 생성된 댓글 정보
+ * @throws HTTP 요청 실패 시 에러
+ */
+export async function createComment(postId: number, payload: CreateCommentPayload): Promise<CreateCommentResponse> {
+  console.log(`Creating comment for post ID: ${postId}`, payload);
+  console.log("Request URL:", `${BASE_URL}/posts/${postId}/comments`);
+
+  const response = await fetch(`${BASE_URL}/posts/${postId}/comments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log("Create comment response:", data);
+  return data;
+}
+
+/**
+ * 특정 게시글의 모든 댓글을 조회합니다.
+ * @param postId 댓글을 조회할 게시글의 ID
+ * @returns 해당 게시글의 댓글 목록
+ * @throws HTTP 요청 실패 시 에러
+ */
+export async function getCommentsByPostId(postId: number): Promise<Comment[]> {
+  console.log(`Fetching comments for post ID: ${postId}`);
+  console.log("Request URL:", `${BASE_URL}/posts/${postId}/comments`);
+
+  const response = await fetch(`${BASE_URL}/posts/${postId}/comments`);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log("Comments by post ID response:", data);
+  return data.comments as Comment[]; // 백엔드 응답 구조에 맞춤
+}
+
+/**
+ * 댓글을 수정합니다.
+ * @param commentId 수정할 댓글의 ID
+ * @param payload 수정할 댓글 내용 및 수정자 ID
+ * @returns 수정된 댓글 정보
+ * @throws HTTP 요청 실패 시 에러
+ */
+export async function updateComment(commentId: number, payload: UpdateCommentPayload): Promise<UpdateCommentResponse> {
+  console.log(`Updating comment ID: ${commentId}`, payload);
+  console.log("Request URL:", `${BASE_URL}/posts/comments/${commentId}`);
+
+  const response = await fetch(`${BASE_URL}/posts/comments/${commentId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log("Update comment response:", data);
+  return data;
+}
+
+/**
+ * 댓글을 삭제합니다.
+ * @param commentId 삭제할 댓글의 ID
+ * @param payload 삭제를 요청한 사용자 ID
+ * @returns 삭제된 댓글 정보
+ * @throws HTTP 요청 실패 시 에러
+ */
+export async function deleteComment(commentId: number, payload: DeleteCommentPayload): Promise<DeleteCommentResponse> {
+  console.log(`Deleting comment ID: ${commentId}`, payload);
+  console.log("Request URL:", `${BASE_URL}/posts/comments/${commentId}`);
+
+  const response = await fetch(`${BASE_URL}/posts/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log("Delete comment response:", data);
+  return data;
+}
+
+// --- 새롭게 추가된 좋아요 API 함수 ---
+
+/**
+ * 특정 게시글에 좋아요를 토글합니다 (누르기/취소).
+ * @param postId 좋아요를 토글할 게시글의 ID
+ * @param payload 좋아요를 요청한 사용자 ID
+ * @returns 좋아요 상태 정보
+ * @throws HTTP 요청 실패 시 에러
+ */
+export async function toggleLike(postId: number, payload: ToggleLikePayload): Promise<ToggleLikeResponse> {
+  console.log(`Toggling like for post ID: ${postId}`, payload);
+  console.log("Request URL:", `${BASE_URL}/posts/${postId}/likes`);
+
+  const response = await fetch(`${BASE_URL}/posts/${postId}/likes`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log("Toggle like response:", data);
+  return data;
+}
+
+/**
+ * 특정 게시글의 좋아요 수를 조회합니다.
+ * @param postId 좋아요 수를 조회할 게시글의 ID
+ * @returns 좋아요 수 정보
+ * @throws HTTP 요청 실패 시 에러
+ */
+export async function getLikesCountByPostId(postId: number): Promise<LikesCountResponse> {
+  console.log(`Fetching likes count for post ID: ${postId}`);
+  console.log("Request URL:", `${BASE_URL}/posts/${postId}/likes/count`);
+
+  const response = await fetch(`${BASE_URL}/posts/${postId}/likes/count`);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log("Likes count response:", data);
+  return data;
+}
+
+/**
+ * 특정 게시물에 대한 특정 사용자의 좋아요 상태를 확인합니다.
+ * @param postId 좋아요 상태를 확인할 게시글의 ID
+ * @param userId 좋아요 상태를 확인할 사용자의 ID
+ * @returns 좋아요 상태 (눌렀는지 여부)
+ * @throws HTTP 요청 실패 시 에러
+ */
+export async function getLikeStatusForUser(postId: number, userId: string): Promise<LikeStatusResponse> {
+  console.log(`Fetching like status for post ID: ${postId} by user ID: ${userId}`);
+  console.log("Request URL:", `${BASE_URL}/posts/${postId}/likes/status/${userId}`);
+
+  const response = await fetch(`${BASE_URL}/posts/${postId}/likes/status/${userId}`);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log("Like status response:", data);
+  return data;
 }

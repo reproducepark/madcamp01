@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { SafeAreaView, StyleSheet, FlatList, Image, Dimensions, TouchableOpacity, Text, View, RefreshControl, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView, StyleSheet, FlatList, Image, Dimensions, TouchableOpacity, Text, View, RefreshControl, ActivityIndicator, Alert, Platform, StatusBar } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NearByPostsUpperResponse, getNearbyPostsUpper } from '../../api/post';
@@ -21,6 +21,24 @@ const ITEM_SPACING = 8;
 const NUM_COLUMNS = 3;
 
 const ITEM_SIZE = (width - (LIST_PADDING_HORIZONTAL * 2) - (ITEM_SPACING * (NUM_COLUMNS - 1))) / NUM_COLUMNS;
+
+// 사용할 색상 팔레트를 상수로 정의합니다.
+const COLOR_PALETTE = {
+  NAVY_BLUE: "#072ac8", // BLUE_DARK -> NAVY_BLUE
+  SKY_BLUE: "#1e96fc", // BLUE_MEDIUM -> SKY_BLUE
+  LIGHT_BLUE: "#a2d6f9", // BLUE_LIGHT -> LIGHT_BLUE
+  GRAYISH_BROWN_LIGHT: "#6c757d", // MUSTARD_LIGHT -> GRAYISH_BROWN_LIGHT
+  GRAYISH_BROWN_DARK: "#6c757d",  // MUSTARD_DARK -> GRAYISH_BROWN_DARK
+  // 무채색은 그대로 유지
+  WHITE: '#fff',
+  BLACK: '#000',
+  GRAY_DARK: '#333',
+  GRAY_MEDIUM: '#555',
+  GRAY_LIGHT: '#888',
+  GRAY_VERY_LIGHT: '#999',
+  BORDER_COLOR: '#e0e0e0',
+  LIKE_COLOR: '#e71d36', // 좋아요 아이콘 색상
+};
 
 export function TabTwoScreen() {
   const navigation = useNavigation<NavigationProp<TabTwoStackParamList>>();
@@ -165,26 +183,26 @@ export function TabTwoScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.navContainer}>
         <View style={styles.locationInfoContainer}>
-          <Text style={styles.textDong}>
-            {currentAdminDong || '위치 정보 로딩 중...'} 이웃로그
-          </Text>
-          <TouchableOpacity
-              onPress={handleLocationRefreshConfirmation}
-              style={styles.inlineRefreshButton}
-              disabled={isLocationRefreshing}
+            <Text style={styles.textDong}>
+                {currentAdminDong || '위치 정보 로딩 중...'} 이웃로그
+            </Text>
+            <TouchableOpacity
+                onPress={handleLocationRefreshConfirmation}
+                style={styles.inlineRefreshButton}
+                disabled={isLocationRefreshing}
             >
-              {isLocationRefreshing ? (
-                <ActivityIndicator size="small" color="#f4511e" />
-              ) : (
-                <Ionicons name="locate-outline" size={25} color="#f4511e" /> 
-              )}
+                {isLocationRefreshing ? (
+                    <ActivityIndicator size="small" color={COLOR_PALETTE.LIKE_COLOR} style={styles.locationIcon} />
+                ) : (
+                    <Ionicons name="navigate-circle" size={20} color={COLOR_PALETTE.LIKE_COLOR} style={styles.locationIcon} /> 
+                )}
             </TouchableOpacity>
         </View>
          <TouchableOpacity
               onPress={handleMyPagePress}
               style={styles.headerButton}
           >
-            <Ionicons name="person-circle" size={35} color="#f4511e" />
+            <Ionicons name="person-circle" size={35} color={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
         </TouchableOpacity>
 
       </View>
@@ -198,6 +216,7 @@ export function TabTwoScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={fetchPosts}
+            tintColor={COLOR_PALETTE.GRAYISH_BROWN_DARK}
           />
         }
       />
@@ -231,7 +250,7 @@ export function TabTwoScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLOR_PALETTE.WHITE,
   },
   list: {
     paddingHorizontal: LIST_PADDING_HORIZONTAL,
@@ -240,81 +259,34 @@ const styles = StyleSheet.create({
     width: ITEM_SIZE,
     height: ITEM_SIZE,
     borderRadius: 8,
-    backgroundColor: '#eee',
-  },
-  container: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    flex: 1,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    padding: 20,
+    backgroundColor: '#eee', // 무채색 유지
   },
   navContainer: {
     flexDirection:'row',
     justifyContent:'space-between',
-    padding: 20, 
+    padding: 20,
+    paddingTop: Platform.OS === 'android' ? ((StatusBar.currentHeight || 0) + 20) : 20,
+    alignItems: 'center',
   },
   textDong: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
-    marginLeft: 10,
     textAlign: 'left',
+    lineHeight: 32,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    paddingLeft: 10,
   },
-  text: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  subText: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    fontSize: 16,
-    color: 'gray',
-    textAlign: 'center',
-  },
-  listItem: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#fafafa',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  itemTitle: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  itemSubtitle: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-  },
-  itemImage: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    width: 50,
-    height: 50,
-    borderRadius: 4,
-    backgroundColor: '#ddd',
-  },
-  textContainer: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    flexDirection: 'column'
-  },
-  imageContainer: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    // justifyContent:'flex-end'
-  },
-
   headerButton: {
     marginRight: 15,
     padding: 5,
   },
-
   inlineRefreshButton: {
-    paddingLeft:5,
-  },
-  headerRightContainer: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
     flexDirection: 'row',
-    marginRight: 5,
+    alignItems: 'center',
+  },
+  locationIcon: {
+    marginLeft: 5,
   },
   locationInfoContainer:{
     flexDirection:'row',

@@ -40,16 +40,21 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onFinishOnboarding 
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>이웃들은 어떤 생각을 하고 있을까요?</Text>
-      <Text style={styles.description}>
-        지금 닉네임을 선택하고 시작해보세요!
-      </Text>
+      <View style={styles.contentWrapper}>
+        <Image
+          source={require('../../assets/app_icon.png')} // 앱 아이콘 경로
+          style={styles.appIcon}
+        />
+        <Text style={styles.title}>당신의 이웃, 네이보</Text>
+        <Text style={styles.description}>
+          지금 닉네임을 선택하고 시작해보세요!
+        </Text>
+      </View>
 
       <TouchableOpacity style={styles.button} onPress={handleStartPress}>
         <Text style={styles.buttonText}>시작하기</Text>
       </TouchableOpacity>
 
-      {/* 닉네임 입력 모달 컴포넌트 */}
       <NicknameModal
         isVisible={isModalVisible} // 모달의 가시성
         onClose={() => setModalVisible(false)} // 모달 닫기 요청 시 호출
@@ -62,10 +67,24 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onFinishOnboarding 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    // justifyContent: 'center', // 이전에는 전체를 중앙 정렬했지만, 이제 contentWrapper가 중앙을 담당
     alignItems: 'center',
     backgroundColor: '#FFFFFF', // 흰색 배경 (이미지에 맞춤)
     padding: 20,
+    justifyContent: 'space-between', // 상단과 하단에 요소를 배치하고 나머지 공간을 균등 분배
+    paddingBottom: 30, // 버튼 하단 여백과 일치시켜 보기 좋게
+    paddingTop: 80, // 상단 로고를 위한 여백
+  },
+  contentWrapper: { // 로고와 제목을 감싸는 새로운 스타일
+    flex: 1, // 남은 공간을 차지하여 중앙으로 밀어냅니다.
+    justifyContent: 'center', // 이 내부 요소를 세로 중앙 정렬
+    alignItems: 'center',
+  },
+  appIcon: { // 앱 아이콘 스타일
+    width: 150, // 아이콘 크기 조절
+    height: 150,
+    resizeMode: 'contain',
+    marginBottom: 10, // 제목과의 간격
   },
   carrotIcon: {
     width: 100, // 이미지 크기
@@ -113,7 +132,7 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   button: {
-    backgroundColor: '#FF7E36', // 당근색 버튼 배경
+    backgroundColor: '#e71d36', // 당근색 버튼 배경
     paddingVertical: 15,
     paddingHorizontal: 100, // 버튼 좌우 패딩
     borderRadius: 5, // 둥근 모서리
@@ -123,6 +142,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     width: '80%', // 버튼 너비
+    // marginBottom: 30, // 하단 여백
   },
   buttonText: {
     color: '#FFFFFF', // 흰색 글씨

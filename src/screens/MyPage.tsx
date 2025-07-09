@@ -85,20 +85,51 @@ export function MyPageScreen() {
     }, []) 
   );
 
+  const formatRelativeTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const nineHoursInMilliseconds = 9 * 60 * 60 * 1000;
+  const diffMinutes = Math.floor((now.getTime() - date.getTime() - nineHoursInMilliseconds ) / (1000 * 60));
+
+  if (diffMinutes < 1) return '방금 전';
+  if (diffMinutes < 60) return `${diffMinutes}분 전`;
+  
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}시간 전`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}일 전`;
+  
+  // 일주일 이상 지난 경우, 원래 날짜 형식으로 표시
+  return date.toLocaleDateString('ko-KR');
+};
+
   // 내가 쓴 글 아이템 렌더링 함수
   const renderUserPostItem = ({ item }: { item: UserPost }) => (
+    
     <TouchableOpacity style={styles.postItem} onPress={() => navigation.navigate('PostDetail', { postId: item.id })}>
-      {item.image_url && (
-        <Image source={{ uri: item.image_url }} style={styles.postItemImage} />
-      )}
+      
       <View style={styles.postItemContent}>
         <Text style={styles.postItemTitle}>{item.title}</Text>
-        <View style={styles.postItemInfoRow}>
+
+        <View style={styles.nicknameContainer}>
+          <Ionicons name="person-circle" size={20} color="#e71d36" />
+          <Text style={styles.nicknameRight}>{item.nickname}</Text>
+        </View>
+        {/* <View style={styles.postItemInfoRow}>
           <Text style={styles.postItemDong}>{item.admin_dong}</Text>
           <Text style={styles.postItemSeparator}>|</Text>
           <Text style={styles.postItemDate}>{new Date(item.created_at).toLocaleDateString('ko-KR')}</Text>
+        </View> */}
+        <View style={styles.metaInfoContainer}>
+          <Text style={styles.dateTimeLocation}>
+            {formatRelativeTime(item.created_at)} · {item.admin_dong}
+          </Text>
         </View>
       </View>
+      {item.image_url && (
+        <Image source={{ uri: item.image_url }} style={styles.postItemImage} />
+      )}
     </TouchableOpacity>
   );
 
@@ -106,7 +137,7 @@ export function MyPageScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#f4511e" />
+          <ActivityIndicator size="large" color="#e71d36" />
           <Text style={styles.loadingText}>사용자 정보를 불러오는 중...</Text>
         </View>
       </SafeAreaView>
@@ -116,36 +147,38 @@ export function MyPageScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <View style={styles.userInfoDetails}>
-          <View style={styles.infoRow}>
+        <View style={styles.userInfoCard}>
+          {/* <Ionicons name="person-circle-outline" size={60} color="#f4511e" style={styles.profileIcon} /> */}
+          <View style={styles.userInfoTextContainer}>
             <Text style={styles.infoLabelNickname}>{nickname || '정보 없음'}</Text>
-          </View>
-          <View style={styles.infoRow}>
             <Text style={styles.infoLabelDong}>{adminDong || '정보 없음'}</Text>
           </View>
         </View>
 
-        <View style={styles.divider} />
+        {/* <View style={styles.myPostsSectionCard}> */}
 
-        <Text style={styles.sectionHeader}>내가 쓴 글</Text>
-        {postsLoading ? (
-          <View style={styles.postsLoadingContainer}>
-            <ActivityIndicator size="small" color="#f4511e" />
-            <Text style={styles.loadingText}>글 목록을 불러오는 중...</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={userPosts}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={renderUserPostItem}
-            contentContainerStyle={styles.postsListContainer}
-            ListEmptyComponent={() => (
-              <View style={styles.noPostsContainer}>
-                <Text style={styles.noPostsText}>아직 작성한 글이 없어요.</Text>
-              </View>
-            )}
-          />
-        )}
+          <Text style={styles.sectionHeader}>내가 쓴 글</Text>
+          {postsLoading ? (
+            <View style={styles.postsLoadingContainer}>
+              <ActivityIndicator size="small" color="#e71d36" />
+              <Text style={styles.loadingText}>글 목록을 불러오는 중...</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={userPosts}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={renderUserPostItem}
+              contentContainerStyle={styles.postsListContainer}
+              ListEmptyComponent={() => (
+                <View style={styles.noPostsContainer}>
+                  <Text style={styles.noPostsText}>아직 작성한 글이 없어요.</Text>
+                </View>
+              )}
+            />
+          )}
+
+        {/* </View> */}
+        
       </View>
     </SafeAreaView>
   );
@@ -239,7 +272,7 @@ const styles = StyleSheet.create({
     width: 65,
     height: 65,
     borderRadius: 8,
-    marginRight: 15,
+    // marginRight: 15,
     backgroundColor: '#eee',
     resizeMode: 'cover',
   },
@@ -247,7 +280,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   postItemTitle: {
-    fontSize: 16,
+    fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 4,
     color: '#333',
@@ -282,5 +315,47 @@ const styles = StyleSheet.create({
   noPostsText: {
     fontSize: 16,
     color: '#777',
+  },
+  nicknameRight: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#e71d36',
+    marginLeft: 5,
+  },
+  nicknameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom:5,
+  },
+  metaInfoContainer: {
+    // marginBottom: 15,
+    // borderBottomWidth: StyleSheet.hairlineWidth, // 구분선 두께 통일
+    borderBottomColor: '#E0E0E0',
+    // paddingBottom: 10,
+    alignItems: 'flex-start',
+  },
+  dateTimeLocation: {
+    fontSize: 14,
+    color: '#777',
+  },
+  userInfoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 15,
+    padding: 20,
+    // marginHorizontal: 20, // 좌우 여백
+    marginBottom: 25, // 하단 여백
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  profileIcon: {
+    marginRight: 15,
+  },
+  userInfoTextContainer: {
+    flex: 1,
   },
 });

@@ -1,13 +1,29 @@
-// screens/TabThreeScreen.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, Alert, Text } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, Text, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { getPostsInViewport, NearByViewportResponse, Viewport } from '../../api/post'; // Adjust the import path as needed
-import MapComponent from '../components/MapComponent'; // 새로 생성할 컴포넌트
-import BottomSheetContent from '../components/BottomSheetContent'; // 새로 생성할 컴포넌트
+import { getPostsInViewport, NearByViewportResponse, Viewport } from '../../api/post';
+import MapComponent from '../components/MapComponent';
+import BottomSheetContent from '../components/BottomSheetContent'; // 수정된 BottomSheetContent 임포트
+import MapView, { Region } from 'react-native-maps';
+
+// 사용할 색상 팔레트를 상수로 정의합니다.
+const COLOR_PALETTE = {
+  SKY_BLUE: "#1e96fc",
+  LIGHT_BLUE: "#a2d6f9",
+  GRAYISH_BROWN_LIGHT: "#6c757d",
+  GRAYISH_BROWN_DARK: "#6c757d",
+  WHITE: '#fff',
+  BLACK: '#000',
+  GRAY_DARK: '#333',
+  GRAY_MEDIUM: '#555',
+  GRAY_LIGHT: '#888',
+  GRAY_VERY_LIGHT: '#999',
+  BORDER_COLOR: '#e0e0e0',
+  LIKE_COLOR: '#e71d36', // 좋아요 아이콘 색상 (주황색 계열)
+};
 
 export function TabThreeScreen() {
   const [currentRegion, setCurrentRegion] = useState<null | Region>(null);
@@ -15,23 +31,62 @@ export function TabThreeScreen() {
   const [posts, setPosts] = useState<NearByViewportResponse[]>([]);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const mapRef = useRef<MapView>(null);
+  // BottomSheetContent의 ref를 추가합니다.
+  const bottomSheetContentRef = useRef<any>(null); // BottomSheetContent의 scrollToTop 메서드를 호출하기 위함
+
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
-  const snapPoints = ['30%', '40%', '80%'];
+  // 애니메이션을 위한 useRef 추가
+  const loadPostsButtonOpacity = useRef(new Animated.Value(1)).current;
+  const myLocationButtonOpacity = useRef(new Animated.Value(1)).current;
 
-  // 초기 위치 설정 로직
+  const snapPoints = ['30%', '50%', '70%'];
+
+  // 바텀 시트 상태 변경에 따라 버튼 애니메이션 실행
+  useEffect(() => {
+    // '이 지역 검색하기' 버튼 애니메이션
+    Animated.timing(loadPostsButtonOpacity, {
+      toValue: isBottomSheetOpen ? 0 : 1, // 바텀시트가 열리면 0 (투명), 닫히면 1 (불투명)
+      duration: 300, // 0.3초
+      useNativeDriver: true,
+    }).start();
+
+    // '현재 위치로' 버튼 애니메이션
+    Animated.timing(myLocationButtonOpacity, {
+      toValue: isBottomSheetOpen ? 0 : 1, // 바텀시트가 열리면 0 (투명) 또는 1 (불투명)
+      duration: 300, // 0.3초
+      useNativeDriver: true,
+    }).start();
+  }, [isBottomSheetOpen, loadPostsButtonOpacity, myLocationButtonOpacity]);
+
+
+  // 초기 위치 설정 로직 및 현재 위치 저장
   useEffect(() => {
     (async () => {
       try {
-        const { coords } = await Location.getCurrentPositionAsync({});
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('위치 권한 필요', '이 기능을 사용하려면 위치 권한이 필요합니다.');
+          const defaultRegion = { latitude: 36.3504, longitude: 127.3845, latitudeDelta: 0.0922, longitudeDelta: 0.0421 };
+          setInitialMapRegion(defaultRegion);
+          setCurrentRegion(defaultRegion);
+          return;
+        }
+
+        const location = await Location.getCurrentPositionAsync({});
+        const coords = location.coords;
+        setUserLocation(coords); // 사용자 위치 저장
+
         const regionData = { latitude: coords.latitude, longitude: coords.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 };
         setInitialMapRegion(regionData);
         setCurrentRegion(regionData);
       } catch (err) {
         console.error("현재 위치를 가져오는 중 오류 발생:", err);
-        Alert.alert('위치 오류', '현재 위치를 가져올 수 없습니다.');
+        Alert.alert('위치 오류', '현재 위치를 가져올 수 없습니다. 기본 위치로 지도를 로드합니다.');
         const defaultRegion = { latitude: 36.3504, longitude: 127.3845, latitudeDelta: 0.0922, longitudeDelta: 0.0421 };
         setInitialMapRegion(defaultRegion);
         setCurrentRegion(defaultRegion);
@@ -63,11 +118,12 @@ export function TabThreeScreen() {
       setPosts(fetchedPosts);
       console.log("가져온 게시글:", fetchedPosts);
 
+      // 게시글을 성공적으로 가져온 후에 바텀시트 열기
       if (bottomSheetRef.current) {
         if (fetchedPosts.length > 0) {
-          bottomSheetRef.current.snapToIndex(1); // 게시글이 있으면 60%로 열기
+          bottomSheetRef.current.snapToIndex(0); // 게시글이 있으면 첫 번째 스냅포인트(30%)로 열기
         } else {
-          bottomSheetRef.current.snapToIndex(2); // 게시글이 없으면 100%로 열기 (안내문 표시)
+          bottomSheetRef.current.snapToIndex(1); // 게시글이 없으면 두 번째 스냅포인트(50%)로 열기 (안내문 표시)
         }
       }
 
@@ -83,57 +139,91 @@ export function TabThreeScreen() {
   const handleMarkerPress = useCallback((post: NearByViewportResponse) => {
     console.log("마커 클릭:", post.title);
     if (bottomSheetRef.current) {
-      bottomSheetRef.current?.snapToIndex(1); // 60%
+      bottomSheetRef.current?.snapToIndex(0); // 첫 번째 스냅포인트(30%)로 열기
+      // 마커 클릭 시에도 스크롤 맨 위로 이동
+      if (bottomSheetContentRef.current) {
+        bottomSheetContentRef.current.scrollToTop();
+      }
     }
-    // TODO: FlatList에서 해당 아이템으로 스크롤하는 로직 추가
   }, []);
+
+  // 바텀 시트 상태 변경 핸들러
+  const handleBottomSheetChanges = useCallback((index: number) => {
+    setIsBottomSheetOpen(index > -1); // 바텀 시트가 닫힌 상태(-1)가 아니면 열린 것으로 간주
+
+    // 바텀 시트가 열릴 때마다 목록을 맨 위로 스크롤합니다.
+    if (index > -1 && bottomSheetContentRef.current) {
+      bottomSheetContentRef.current.scrollToTop();
+    }
+  }, []);
+
 
   const toggleBottomSheet = useCallback(() => {
     if (isBottomSheetOpen) {
       bottomSheetRef.current?.close();
     } else {
-      if (bottomSheetRef.current) {
-        if (posts.length > 0) {
-          bottomSheetRef.current?.snapToIndex(1);
-        } else {
-          bottomSheetRef.current?.snapToIndex(2);
-        }
-      }
+      // 바텀시트가 닫혀있을 때 '목록 보기'를 누르면 게시글을 새로고침하고 엽니다.
+      handleLoadPosts();
     }
-  }, [isBottomSheetOpen, posts.length]);
+  }, [isBottomSheetOpen, handleLoadPosts]);
+
+  // 현재 위치로 지도를 이동시키는 함수
+  const moveToCurrentLocation = useCallback(() => {
+    if (userLocation && mapRef.current) {
+      const newRegion = {
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+      mapRef.current.animateToRegion(newRegion, 1000); // 1초 동안 애니메이션
+      setCurrentRegion(newRegion); // 현재 지도 영역도 업데이트
+    } else {
+      Alert.alert('오류', '현재 위치 정보를 가져올 수 없습니다.');
+    }
+  }, [userLocation]);
+
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       {!initialMapRegion ? (
         <View style={styles.loading}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={{ marginTop: 10 }}>지도를 불러오는 중...</Text>
+          <ActivityIndicator size="large" color={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
+          <Text style={{ marginTop: 10, color: COLOR_PALETTE.GRAY_MEDIUM }}>지도를 불러오는 중...</Text>
         </View>
       ) : (
         <View style={styles.mapContainer}>
           <MapComponent
+            mapRef={mapRef}
             initialMapRegion={initialMapRegion}
             currentRegion={currentRegion}
             onRegionChangeComplete={setCurrentRegion}
             posts={posts}
             onMarkerPress={handleMarkerPress}
+            userLocation={userLocation} // userLocation prop 전달
           />
 
-          {!isBottomSheetOpen && (
-            <TouchableOpacity
-              style={styles.loadPostsButton}
-              onPress={handleLoadPosts}
-              disabled={loadingPosts}
-            >
-              {loadingPosts ? (
-                <ActivityIndicator size="small" color="#007AFF" />
-              ) : (
-                <Text style={styles.loadPostsButtonText}>
-                  <Ionicons name="location-outline" size={16} color="#007AFF" /> 이 지역 검색하기
-                </Text>
-              )}
-            </TouchableOpacity>
-          )}
+          {/* 바텀시트가 열려있지 않을 때만 "이 지역 검색하기" 버튼 표시 */}
+          {/* Animated.View 로 감싸서 opacity 애니메이션 적용 */}
+          <Animated.View style={[styles.loadPostsButtonContainer, { opacity: loadPostsButtonOpacity }]}>
+            {/* isBottomSheetOpen 조건은 Animated.View의 opacity가 0일 때 터치 이벤트를 막기 위해 유지 */}
+            {!isBottomSheetOpen && (
+              <TouchableOpacity
+                style={styles.loadPostsButton}
+                onPress={handleLoadPosts}
+                disabled={loadingPosts}
+              >
+                {loadingPosts ? (
+                  <ActivityIndicator size="small" color={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
+                ) : (
+                  <Text style={styles.loadPostsButtonText}>
+                    <Ionicons name="location-outline" size={16} color={COLOR_PALETTE.GRAYISH_BROWN_DARK} /> 이 지역 검색하기
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </Animated.View>
+
 
           {error && (
             <View style={styles.errorContainer}>
@@ -141,26 +231,48 @@ export function TabThreeScreen() {
             </View>
           )}
 
-          <TouchableOpacity
-            style={styles.toggleListButton}
-            onPress={toggleBottomSheet}
-          >
-            <Text style={styles.toggleListButtonText}>
-              {isBottomSheetOpen ? '목록 숨기기' : '목록 보기'}
-            </Text>
-          </TouchableOpacity>
+          {/* 바텀시트가 열려있지 않을 때만 "현재 위치로" 버튼 표시 */}
+          {/* Animated.View 로 감싸서 opacity 애니메이션 적용 */}
+          <Animated.View style={[styles.myLocationButtonContainer, { opacity: myLocationButtonOpacity }]}>
+            {/* isBottomSheetOpen 조건은 Animated.View의 opacity가 0일 때 터치 이벤트를 막기 위해 유지 */}
+            {initialMapRegion && !isBottomSheetOpen && (
+              <TouchableOpacity
+                style={styles.myLocationButton}
+                onPress={moveToCurrentLocation}
+              >
+                <Ionicons name="locate" size={28} color={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
+              </TouchableOpacity>
+            )}
+          </Animated.View>
+
+
+          {/* 바텀시트 열기/닫기 버튼 (기존 위치 유지) */}
+          {initialMapRegion && (
+            <View style={styles.toggleListButtonContainer}>
+              <TouchableOpacity
+                style={styles.toggleListButton}
+                onPress={toggleBottomSheet}
+              >
+                <Text style={styles.toggleListButtonText}>
+                  {isBottomSheetOpen ? '목록 숨기기' : '목록 보기'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
 
           <BottomSheet
             ref={bottomSheetRef}
-            index={-1}
+            index={-1} // 초기에는 바텀 시트가 닫힌 상태로 시작합니다.
             snapPoints={snapPoints}
             enablePanDownToClose={true}
-            onChange={(index) => setIsBottomSheetOpen(index > -1)}
+            onChange={handleBottomSheetChanges} // 여기에서 상태 변경을 감지합니다.
           >
             <BottomSheetContent
+              ref={bottomSheetContentRef}
               posts={posts}
               loadingPosts={loadingPosts}
-              bottomSheetRef={bottomSheetRef} // BottomSheetContent에서 직접 제어할 수 있도록 ref 전달
+              bottomSheetRef={bottomSheetRef}
             />
           </BottomSheet>
         </View>
@@ -173,49 +285,76 @@ const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
   },
-  loadPostsButton: {
+  // '이 지역 검색하기' 버튼 컨테이너 추가 및 스타일 분리
+  loadPostsButtonContainer: {
     position: 'absolute',
     top: 60,
     alignSelf: 'center',
-    backgroundColor: '#fff',
+    zIndex: 1,
+  },
+  loadPostsButton: {
+    backgroundColor: COLOR_PALETTE.WHITE,
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 20,
-    shadowColor: '#000',
+    shadowColor: COLOR_PALETTE.BLACK,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    zIndex: 1,
+    justifyContent: 'center', // 추가: 수평 중앙 정렬
   },
   loadPostsButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: COLOR_PALETTE.GRAYISH_BROWN_DARK,
     marginLeft: 5,
+    lineHeight: 16 * 1.2, // 폰트 사이즈에 비례하여 lineHeight 조정 (조절 필요할 수 있음)
+    includeFontPadding: false, // 폰트 패딩 제거 (Android)
+    textAlignVertical: 'center', // 수직 중앙 정렬 (Android)
   },
-  toggleListButton: {
+  toggleListButtonContainer: {
     position: 'absolute',
     bottom: 20,
     alignSelf: 'center',
-    backgroundColor: '#ff7f00',
+    zIndex: 1,
+  },
+  toggleListButton: {
+    backgroundColor: COLOR_PALETTE.LIKE_COLOR,
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 25,
-    shadowColor: '#000',
+    shadowColor: COLOR_PALETTE.BLACK,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
-    zIndex: 1,
   },
-  // 이곳에 toggleListButtonText 스타일을 추가합니다.
   toggleListButtonText: {
     fontSize: 17,
     fontWeight: 'bold',
-    color: '#fff',
+    color: COLOR_PALETTE.WHITE,
+  },
+  // '현재 위치로' 버튼 컨테이너 추가 및 스타일 분리
+  myLocationButtonContainer: {
+    position: 'absolute',
+    bottom: 90,
+    right: 20,
+    zIndex: 1,
+  },
+  myLocationButton: {
+    backgroundColor: COLOR_PALETTE.WHITE,
+    padding: 12,
+    borderRadius: 50,
+    shadowColor: COLOR_PALETTE.BLACK,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   loading: {
     flex: 1,
@@ -226,23 +365,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 100,
     alignSelf: 'center',
-    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+    backgroundColor: COLOR_PALETTE.LIKE_COLOR,
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 10,
     zIndex: 1,
   },
   errorText: {
-    color: '#fff',
+    color: COLOR_PALETTE.WHITE,
     fontSize: 14,
     fontWeight: 'bold',
   },
 });
-
-// MapView에서 Region 타입을 사용하므로 여기에 정의
-interface Region {
-  latitude: number;
-  longitude: number;
-  latitudeDelta: number;
-  longitudeDelta: number;
-}
