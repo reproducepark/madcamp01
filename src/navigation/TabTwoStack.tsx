@@ -30,7 +30,7 @@ export function TabTwoNavigator() {
       <TabTwoStack.Screen
         name="MyPage"
         component={MyPageScreen}
-        options={{title:'마이페이지'}}
+        options={{title:''}}
       />
     </TabTwoStack.Navigator>
   );

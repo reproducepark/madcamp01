@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   nicknameRight: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#FF7E36',
+    color: '#e71d36',
   },
   nicknameContainer: {
     flexDirection: 'row',
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   },
   dateTimeLocation: {
     fontSize: 12,
-    color: '#999',
+    color: '#6c757d',
   },
 });
 

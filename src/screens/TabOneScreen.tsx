@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   nicknameRight: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: COLOR_PALETTE.GRAYISH_BROWN_DARK, // 변경: 주황색 -> 밝은 머스타드
+    color: COLOR_PALETTE.LIKE_COLOR, // 변경: 주황색 -> 밝은 머스타드
   },
   nicknameContainer: {
     flexDirection: 'row',

@@ -32,7 +32,7 @@ export function TabOneNavigator() {
       <TabOneStack.Screen
         name="MyPage"
         component={MyPageScreen}
-        options={{title:'마이페이지'}}
+        options={{title:''}}
       />
     </TabOneStack.Navigator>
   );

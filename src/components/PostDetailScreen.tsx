@@ -430,42 +430,44 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
 
           <Text style={styles.content}>{post.content}</Text>
           
- 
-          <View style={styles.likesContainer}>
-            <TouchableOpacity onPress={handleToggleLike} style={styles.likeButton}>
-              <Ionicons name={isLiked ? "heart" : "heart-outline"} size={24} color={isLiked ? COLOR_PALETTE.LIKE_COLOR : COLOR_PALETTE.GRAY_MEDIUM} />
-              <Text style={styles.likeCount}>{likesCount}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {isMyPost && (
-            <View style={styles.buttonContainer}>
-              <Pressable
-                onPress={handleEdit}
-                style={({ pressed }) => [
-                  styles.iconButton,
-                  { backgroundColor: pressed ? COLOR_PALETTE.BORDER_COLOR : 'transparent' },
-                ]}
-              >
-                <Image
-                  source={require('../../assets/icons/edit.png')}
-                  style={styles.icon}
-                />
-              </Pressable>
-              <Pressable
-                onPress={handleDeletePress}
-                style={({ pressed }) => [
-                  styles.iconButton,
-                  { backgroundColor: pressed ? COLOR_PALETTE.BORDER_COLOR : 'transparent' },
-                ]}
-              >
-                <Image
-                  source={require('../../assets/icons/trashcan.png')}
-                  style={styles.icon}
-                />
-              </Pressable>
+          {/* 좋아요 버튼과 수정/삭제 버튼을 포함하는 새로운 컨테이너 추가 */}
+          <View style={styles.postActionsContainer}>
+            <View style={styles.likesContainer}>
+              <TouchableOpacity onPress={handleToggleLike} style={styles.likeButton}>
+                <Ionicons name={isLiked ? "heart" : "heart-outline"} size={24} color={isLiked ? COLOR_PALETTE.LIKE_COLOR : COLOR_PALETTE.GRAY_MEDIUM} />
+                <Text style={styles.likeCount}>{likesCount}</Text>
+              </TouchableOpacity>
             </View>
-          )}
+
+            {isMyPost && (
+              <View style={styles.buttonContainer}>
+                <Pressable
+                  onPress={handleEdit}
+                  style={({ pressed }) => [
+                    styles.iconButton,
+                    { backgroundColor: pressed ? COLOR_PALETTE.BORDER_COLOR : 'transparent' },
+                  ]}
+                >
+                  <Image
+                    source={require('../../assets/icons/edit.png')}
+                    style={styles.icon}
+                  />
+                </Pressable>
+                <Pressable
+                  onPress={handleDeletePress}
+                  style={({ pressed }) => [
+                    styles.iconButton,
+                    { backgroundColor: pressed ? COLOR_PALETTE.BORDER_COLOR : 'transparent' },
+                  ]}
+                >
+                  <Image
+                    source={require('../../assets/icons/trashcan.png')}
+                    style={styles.icon}
+                  />
+                </Pressable>
+              </View>
+            )}
+          </View>
         </View>
 
    
@@ -640,15 +642,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 26,
     color: COLOR_PALETTE.GRAY_DARK, // 변경: #444 -> COLOR_PALETTE.GRAY_DARK
-    marginBottom: 50,
+    marginBottom: 20, // 좋아요/수정/삭제 버튼이 있는 새 컨테이너 위로 마진 조정
+  },
+  // 새롭게 추가된 스타일
+  postActionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 20,
+    borderTopColor: COLOR_PALETTE.BORDER_COLOR,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 15,
+    paddingHorizontal: 10,
   },
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 20,
-    borderTopColor: COLOR_PALETTE.BORDER_COLOR, // 변경: #eee -> COLOR_PALETTE.BORDER_COLOR
-    paddingTop: 15,
-    paddingHorizontal: 10,
+    // justifyContent: 'flex-end', // 제거: postActionsContainer에서 정렬을 담당
   },
   iconButton: {
     padding: 10,
@@ -669,10 +678,6 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     alignItems: 'flex-start',
   },
-  dateTimeLocation: {
-    fontSize: 14,
-    color: COLOR_PALETTE.GRAY_LIGHT, // 변경: #777 -> COLOR_PALETTE.GRAY_LIGHT
-  },
   titleAndNicknameContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -688,6 +693,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingBottom:10,
+  },
+  dateTimeLocation: {
+    fontSize: 14,
+    color: COLOR_PALETTE.GRAY_LIGHT, // 변경: #777 -> COLOR_PALETTE.GRAY_LIGHT
   },
   fullScreenModalContainer: {
     flex: 1,
@@ -842,10 +851,10 @@ const styles = StyleSheet.create({
   likesContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    paddingBottom: 15,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLOR_PALETTE.BORDER_COLOR, // 변경: #eee -> COLOR_PALETTE.BORDER_COLOR
+    // marginBottom: 20, // 제거: postActionsContainer에 통합
+    // paddingBottom: 15, // 제거: postActionsContainer에 통합
+    // borderBottomWidth: StyleSheet.hairlineWidth, // 제거: postActionsContainer에 통합
+    // borderBottomColor: COLOR_PALETTE.BORDER_COLOR, // 제거: postActionsContainer에 통합
   },
   likeButton: {
     flexDirection: 'row',

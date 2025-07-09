@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
   headerButtonText: {
     fontSize: 18,
-    color: '#f4511e',
+    color: '#e71d36',
     fontWeight: 'bold',
   },
   closeIcon: {

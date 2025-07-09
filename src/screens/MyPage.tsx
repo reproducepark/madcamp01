@@ -113,7 +113,7 @@ export function MyPageScreen() {
         <Text style={styles.postItemTitle}>{item.title}</Text>
 
         <View style={styles.nicknameContainer}>
-          <Ionicons name="person-circle" size={20} color="#f4511e" />
+          <Ionicons name="person-circle" size={20} color="#e71d36" />
           <Text style={styles.nicknameRight}>{item.nickname}</Text>
         </View>
         {/* <View style={styles.postItemInfoRow}>
@@ -137,7 +137,7 @@ export function MyPageScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#f4511e" />
+          <ActivityIndicator size="large" color="#e71d36" />
           <Text style={styles.loadingText}>사용자 정보를 불러오는 중...</Text>
         </View>
       </SafeAreaView>
@@ -160,7 +160,7 @@ export function MyPageScreen() {
           <Text style={styles.sectionHeader}>내가 쓴 글</Text>
           {postsLoading ? (
             <View style={styles.postsLoadingContainer}>
-              <ActivityIndicator size="small" color="#f4511e" />
+              <ActivityIndicator size="small" color="#e71d36" />
               <Text style={styles.loadingText}>글 목록을 불러오는 중...</Text>
             </View>
           ) : (
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     width: 65,
     height: 65,
     borderRadius: 8,
-    marginRight: 15,
+    // marginRight: 15,
     backgroundColor: '#eee',
     resizeMode: 'cover',
   },
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   nicknameRight: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FF7E36',
+    color: '#e71d36',
     marginLeft: 5,
   },
   nicknameContainer: {

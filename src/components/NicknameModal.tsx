@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    backgroundColor: '#f8f8f8',
+    backgroundColor: 'white',
   },
   modalHeaderTitle: {
     fontSize: 18,
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   },
   headerButtonText: {
     fontSize: 18,
-    color: '#f4511e',
+    color: '#e71d36',
     fontWeight: 'bold',
   },
   disabledButtonText: {
