@@ -152,6 +152,7 @@ export function TabThreeScreen() {
             userLocation={userLocation} // userLocation prop 전달
           />
 
+          {/* 바텀시트가 열려있지 않을 때만 "이 지역 검색하기" 버튼 표시 */}
           {!isBottomSheetOpen && (
             <TouchableOpacity
               style={styles.loadPostsButton}
@@ -174,8 +175,19 @@ export function TabThreeScreen() {
             </View>
           )}
 
-          {initialMapRegion && ( // 지도가 로드된 후에만 버튼 표시
-            <View style={styles.bottomButtonsContainer}>
+          {/* 바텀시트가 열려있지 않을 때만 "현재 위치로" 버튼 표시 */}
+          {initialMapRegion && !isBottomSheetOpen && (
+            <TouchableOpacity
+              style={styles.myLocationButton} // 스타일 분리
+              onPress={moveToCurrentLocation}
+            >
+              <Ionicons name="locate" size={28} color="#007AFF" />
+            </TouchableOpacity>
+          )}
+
+          {/* 바텀시트 열기/닫기 버튼 (기존 위치 유지) */}
+          {initialMapRegion && (
+            <View style={styles.toggleListButtonContainer}>
               <TouchableOpacity
                 style={styles.toggleListButton}
                 onPress={toggleBottomSheet}
@@ -184,16 +196,9 @@ export function TabThreeScreen() {
                   {isBottomSheetOpen ? '목록 숨기기' : '목록 보기'}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.myLocationButton}
-                onPress={moveToCurrentLocation}
-              >
-                <Text style={styles.myLocationButtonText}>
-                  <Ionicons name="navigate-circle-outline" size={16} color="#fff" /> 현재 위치로
-                </Text>
-              </TouchableOpacity>
             </View>
           )}
+
 
           <BottomSheet
             ref={bottomSheetRef}
@@ -241,12 +246,11 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     marginLeft: 5,
   },
-  bottomButtonsContainer: {
+  // '목록 보기/숨기기' 버튼 컨테이너를 분리하여 하단 중앙에 배치
+  toggleListButtonContainer: {
     position: 'absolute',
     bottom: 20,
     alignSelf: 'center',
-    flexDirection: 'row',
-    gap: 10,
     zIndex: 1,
   },
   toggleListButton: {
@@ -265,24 +269,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
   },
+  // '현재 위치로' 버튼 스타일 변경 (아이콘만, 오른쪽 하단)
   myLocationButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 25,
+    position: 'absolute',
+    bottom: 90, // '목록 보기' 버튼 위에 위치하도록 조정
+    right: 20,
+    backgroundColor: '#fff', // 흰색 배경
+    padding: 12, // 아이콘 크기에 맞춰 패딩 조정
+    borderRadius: 50, // 원형 버튼
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
-    flexDirection: 'row',
+    zIndex: 1,
     alignItems: 'center',
-  },
-  myLocationButtonText: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginLeft: 5,
+    justifyContent: 'center',
   },
   loading: {
     flex: 1,
