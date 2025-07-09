@@ -1,7 +1,6 @@
-// TabOneScreen.tsx 파일 수정
 import React, { useState, useEffect, useCallback } from 'react';
 import { Platform, StatusBar, Text, View, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
-import { NearByPostsResponse, createPost, getNearbyPosts, getLikesCountByPostId } from '../../api/post'; // getLikesCountByPostId import
+import { NearByPostsResponse, createPost, getNearbyPosts, getLikesCountByPostId } from '../../api/post';
 import { updateUserLocation } from '../../api/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native';
@@ -402,7 +401,7 @@ export function TabOneScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLOR_PALETTE.WHITE, // 변경: 흰색은 유지
+    backgroundColor: COLOR_PALETTE.WHITE,
   },
   navContainer: {
     flexDirection:'row',
@@ -413,7 +412,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: COLOR_PALETTE.WHITE, // 변경: 흰색은 유지
+    backgroundColor: COLOR_PALETTE.WHITE,
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
@@ -434,7 +433,7 @@ const styles = StyleSheet.create({
   },
   subText: {
     fontSize: 16,
-    color: COLOR_PALETTE.GRAY_LIGHT, // 변경: 무채색 유지
+    color: COLOR_PALETTE.GRAY_LIGHT,
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -449,16 +448,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderRadius: 8,
-    backgroundColor: '#fafafa', // 변경: 무채색 유지
+    backgroundColor: '#fafafa',
     marginBottom: 12,
-    shadowColor: COLOR_PALETTE.BLACK, // 변경: 무채색 유지
+    shadowColor: COLOR_PALETTE.BLACK,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
   itemSubtitle: {
     fontSize: 12,
-    color: COLOR_PALETTE.GRAY_VERY_LIGHT, // 변경: 무채색 유지
+    color: COLOR_PALETTE.GRAY_VERY_LIGHT,
     marginTop: 4,
   },
   textContainer: {
@@ -476,28 +475,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     right: 20,
     bottom: 20,
-    backgroundColor: COLOR_PALETTE.LIKE_COLOR, // 변경: 주황색 -> 진한 머스타드
+    backgroundColor: COLOR_PALETTE.LIKE_COLOR,
     borderRadius: 28,
     elevation: 8,
-    shadowColor: COLOR_PALETTE.BLACK, // 변경: 무채색 유지
+    shadowColor: COLOR_PALETTE.BLACK,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   fabText: {
     fontSize: 24,
-    color: COLOR_PALETTE.WHITE, // 변경: 흰색은 유지
+    color: COLOR_PALETTE.WHITE,
   },
   postItem: {
     flexDirection: 'row',
-    alignItems: 'flex-end', // 모든 항목의 하단을 정렬
+    // alignItems: 'flex-end', // 이 부분을 제거하거나 다른 값으로 조절했습니다.
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLOR_PALETTE.BORDER_COLOR, // 변경: 무채색 유지
-    backgroundColor: COLOR_PALETTE.WHITE, // 변경: 흰색은 유지
+    borderBottomColor: COLOR_PALETTE.BORDER_COLOR,
+    backgroundColor: COLOR_PALETTE.WHITE,
   },
   itemMainContent: { // 텍스트 콘텐츠를 위한 새로운 컨테이너
     flex: 1,
+    flexGrow: 1, // 추가: 남은 공간을 채우도록 함
     justifyContent: 'space-between', // 내부 콘텐츠를 위아래로 분산
     minHeight: 70, // 이미지 높이에 맞춰 최소 높이 설정 (이미지가 없을 때도 레이아웃 유지)
   },
@@ -510,8 +510,8 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 8,
-    backgroundColor: '#eee', // 변경: 무채색 유지
-    marginBottom: 4, // 이미지와 좋아요 개수 사이 간격
+    backgroundColor: '#eee',
+    marginBottom: 4,
   },
   itemTitle: {
     fontSize: 18,
@@ -520,12 +520,12 @@ const styles = StyleSheet.create({
   },
   itemDescription: {
     fontSize: 13,
-    color: COLOR_PALETTE.GRAY_MEDIUM, // 변경: 무채색 유지
+    color: COLOR_PALETTE.GRAY_MEDIUM,
     marginBottom: 4,
   },
   itemLocation: {
     fontSize: 12,
-    color: COLOR_PALETTE.GRAY_VERY_LIGHT, // 변경: 무채색 유지
+    color: COLOR_PALETTE.GRAY_VERY_LIGHT,
   },
   noPostsContainer: {
     flex: 1,
@@ -537,12 +537,12 @@ const styles = StyleSheet.create({
   noPostsText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLOR_PALETTE.GRAY_MEDIUM, // 변경: 무채색 유지
+    color: COLOR_PALETTE.GRAY_MEDIUM,
     marginBottom: 5,
   },
   noPostsSubText: {
     fontSize: 14,
-    color: COLOR_PALETTE.GRAY_LIGHT, // 변경: 무채색 유지
+    color: COLOR_PALETTE.GRAY_LIGHT,
     textAlign: 'center',
   },
   loadingContainer: {
@@ -554,12 +554,12 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: COLOR_PALETTE.GRAY_MEDIUM, // 변경: 무채색 유지
+    color: COLOR_PALETTE.GRAY_MEDIUM,
   },
   adminDongText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLOR_PALETTE.GRAYISH_BROWN_DARK, // 변경: 주황색 -> 진한 머스타드
+    color: COLOR_PALETTE.GRAYISH_BROWN_DARK,
     textAlign: 'center',
     marginBottom: 10,
   },
@@ -586,22 +586,22 @@ const styles = StyleSheet.create({
   nicknameRight: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: COLOR_PALETTE.LIKE_COLOR, // 변경: 주황색 -> 밝은 머스타드
+    color: COLOR_PALETTE.LIKE_COLOR,
   },
   nicknameContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingBottom:5,
   },
-  metaInfoContainer: { // 이 스타일은 더 이상 사용되지 않지만, 혹시 모를 참조를 위해 남겨둡니다.
-    flexDirection: 'row', 
-    justifyContent: 'flex-start', 
+  metaInfoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     marginTop: 4,
   },
   dateTimeLocation: {
     fontSize: 12,
-    color: COLOR_PALETTE.GRAY_VERY_LIGHT, // 변경: 무채색 유지
+    color: COLOR_PALETTE.GRAY_VERY_LIGHT,
   },
   likesCountContainer: {
     flexDirection: 'row',
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
   },
   likesCountText: {
     fontSize: 12,
-    color: COLOR_PALETTE.GRAYISH_BROWN_LIGHT, // 좋아요 아이콘과 같은 색상
+    color: COLOR_PALETTE.GRAYISH_BROWN_LIGHT,
     marginLeft: 4,
   },
 });
