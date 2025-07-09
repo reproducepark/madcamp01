@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Text, View, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { Platform, StatusBar, Text, View, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { NearByPostsResponse, createPost, getNearbyPosts } from '../../api/post';
 import { updateUserLocation } from '../../api/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -242,7 +242,6 @@ export function TabOneScreen() {
       <View style={[styles.itemContent, !item.image_url && styles.itemContentFullWidth]}>
         <Text style={styles.itemTitle}>{item.title}</Text>
         <View style={styles.nicknameContainer}>
-          <Ionicons name="person-circle" size={18} color="#f4511e" />
           <Text style={styles.nicknameRight}>{item.nickname}</Text>
         </View>
         <View style={styles.metaInfoContainer}>
@@ -263,20 +262,20 @@ export function TabOneScreen() {
       <View style={styles.navContainer}>
 
         <View style={styles.locationInfoContainer}>
-          <Text style={styles.textDong}>
-          {currentAdminDong || '위치 정보 로딩 중...'}
-        
-          </Text>
-          <TouchableOpacity
-              onPress={handleLocationRefreshConfirmation} // CustomConfirmModal을 띄우도록 변경
-              style={styles.inlineRefreshButton}
+            {/* inlineRefreshButton에 flexDirection: 'row'와 alignItems: 'center'를 적용 */}
+            <TouchableOpacity
+              onPress={handleLocationRefreshConfirmation}
+              style={styles.inlineRefreshButton} // 이 스타일을 수정합니다.
               disabled={isLocationRefreshing}
             >
-              {isLocationRefreshing ? (
-                <ActivityIndicator size="small" color="#f4511e" />
-              ) : (
-                <Ionicons name="locate-outline" size={25} color="#f4511e" />
-              )}
+                <Text style={styles.textDong}>
+                    {currentAdminDong || '위치 정보 로딩 중...'}
+                </Text>
+                {isLocationRefreshing ? (
+                    <ActivityIndicator size="small" color="#f4511e" style={styles.locationIcon} />
+                ) : (
+                    <Ionicons name="navigate-circle" size={20} color="#f4511e" style={styles.locationIcon} />
+                )}
             </TouchableOpacity>
         </View>
 
@@ -363,7 +362,9 @@ const styles = StyleSheet.create({
   navContainer: {
     flexDirection:'row',
     justifyContent:'space-between',
-    padding: 20, 
+    padding: 20,
+    paddingTop: Platform.OS === 'android' ? ((StatusBar.currentHeight || 0) + 20) : 20, // 안드로이드일 경우 StatusBar 높이 추가
+    alignItems: 'center', // navContainer 내부 요소들을 수직 중앙 정렬
   },
   container: {
     flex: 1,
@@ -374,8 +375,13 @@ const styles = StyleSheet.create({
   textDong: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginLeft: 10,
+    // marginLeft: 10, // 이제 inlineRefreshButton에서 패딩을 줄 것이므로 제거
     textAlign: 'left',
+    // backgroundColor: 'yellow', // 디버깅용으로 필요시 사용
+    paddingVertical: 0,
+    lineHeight: 32,
+    includeFontPadding: false,
+    textAlignVertical: 'center', // Android 텍스트 수직 정렬에 도움
   },
   text: {
     fontSize: 24,
@@ -464,7 +470,7 @@ const styles = StyleSheet.create({
     paddingRight: 20,
   },
   itemTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
   },
@@ -518,21 +524,26 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   inlineRefreshButton: {
-    paddingLeft:5,
+    flexDirection: 'row', // 텍스트와 아이콘을 한 줄에 배치
+    alignItems: 'center', // 텍스트와 아이콘을 수직 중앙 정렬
+    paddingLeft: 10, // 왼쪽 패딩을 여기서 조절
+  },
+  locationIcon: {
+    marginLeft: 5, // 텍스트와 아이콘 사이 간격
+    // 아이콘 자체의 크기나 정렬 미세 조정을 위한 스타일 추가 가능
   },
   headerRightContainer: {
     flexDirection: 'row',
     marginRight: 5,
   },
   locationInfoContainer:{
-    flexDirection:'row',
-    alignItems:'center',
+    flexDirection:'row', // 이 부분은 유지해도 좋지만, inlineRefreshButton이 대부분을 담당
+    alignItems:'center', // 내부 요소들을 수직 중앙 정렬 (선택 사항, inlineRefreshButton에 이미 적용됨)
   },
   nicknameRight: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#FF7E36',
-    marginLeft: 5,
   },
   nicknameContainer: {
     flexDirection: 'row',
@@ -540,10 +551,7 @@ const styles = StyleSheet.create({
     paddingBottom:5,
   },
   metaInfoContainer: {
-    // marginBottom: 15,
-    // borderBottomWidth: StyleSheet.hairlineWidth, // 구분선 두께 통일
     borderBottomColor: '#E0E0E0',
-    // paddingBottom: 10,
     alignItems: 'flex-start',
   },
   dateTimeLocation: {

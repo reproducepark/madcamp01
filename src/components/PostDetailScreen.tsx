@@ -357,7 +357,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
           <Image source={{ uri: post.image_url }} style={styles.postImage} />
         </TouchableOpacity>
       )}
-      <View style={styles.contentSection}> {/* contentContainer를 contentSection으로 이름 변경 */}
+      <View style={styles.contentSection}>
           <View style={styles.titleAndNicknameContainer}>
             <Text style={styles.title}>{post.title}</Text>
           </View>
@@ -374,7 +374,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
 
           <Text style={styles.content}>{post.content}</Text>
           
-          {/* 좋아요 버튼 및 카운트 */}
+ 
           <View style={styles.likesContainer}>
             <TouchableOpacity onPress={handleToggleLike} style={styles.likeButton}>
               <Ionicons name={isLiked ? "heart" : "heart-outline"} size={24} color={isLiked ? "red" : "#666"} />
@@ -412,7 +412,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
           )}
         </View>
 
-        {/* 댓글 섹션 */}
+   
         <View style={styles.commentsSection}>
           <Text style={styles.commentsTitle}>댓글 ({comments.length})</Text>
           <View style={styles.commentInputContainer}>
@@ -495,7 +495,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
           </View>
         </Modal>
 
-        {/* 게시물 삭제 확인 모달 */}
+
         <CustomConfirmModal
           isVisible={isDeleteConfirmModalVisible}
           title="정말 삭제할까요?"
@@ -517,7 +517,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
           cancelText="취소"
         />
 
-        {/* 게시물 수정 모달 */}
+       
         <WriteModal
           visible={isEditModalVisible}
           onClose={() => setIsEditModalVisible(false)}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { SafeAreaView, StyleSheet, FlatList, Image, Dimensions, TouchableOpacity, Text, View, RefreshControl, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView, StyleSheet, FlatList, Image, Dimensions, TouchableOpacity, Text, View, RefreshControl, ActivityIndicator, Alert, Platform, StatusBar } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NearByPostsUpperResponse, getNearbyPostsUpper } from '../../api/post';
@@ -165,19 +165,19 @@ export function TabTwoScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.navContainer}>
         <View style={styles.locationInfoContainer}>
-          <Text style={styles.textDong}>
-            {currentAdminDong || '위치 정보 로딩 중...'} 이웃로그
-          </Text>
-          <TouchableOpacity
-              onPress={handleLocationRefreshConfirmation}
-              style={styles.inlineRefreshButton}
-              disabled={isLocationRefreshing}
+            <Text style={styles.textDong}>
+                {currentAdminDong || '위치 정보 로딩 중...'} 이웃로그
+            </Text>
+            <TouchableOpacity
+                onPress={handleLocationRefreshConfirmation}
+                style={styles.inlineRefreshButton}
+                disabled={isLocationRefreshing}
             >
-              {isLocationRefreshing ? (
-                <ActivityIndicator size="small" color="#f4511e" />
-              ) : (
-                <Ionicons name="locate-outline" size={25} color="#f4511e" /> 
-              )}
+                {isLocationRefreshing ? (
+                    <ActivityIndicator size="small" color="#f4511e" style={styles.locationIcon} />
+                ) : (
+                    <Ionicons name="navigate-circle" size={20} color="#f4511e" style={styles.locationIcon} /> 
+                )}
             </TouchableOpacity>
         </View>
          <TouchableOpacity
@@ -242,79 +242,32 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#eee',
   },
-  container: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    flex: 1,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    padding: 20,
-  },
   navContainer: {
     flexDirection:'row',
     justifyContent:'space-between',
-    padding: 20, 
+    padding: 20,
+    paddingTop: Platform.OS === 'android' ? ((StatusBar.currentHeight || 0) + 20) : 20,
+    alignItems: 'center',
   },
   textDong: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginLeft: 10,
     textAlign: 'left',
+    lineHeight: 32,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    paddingLeft: 10,
   },
-  text: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  subText: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    fontSize: 16,
-    color: 'gray',
-    textAlign: 'center',
-  },
-  listItem: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#fafafa',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  itemTitle: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  itemSubtitle: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-  },
-  itemImage: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    width: 50,
-    height: 50,
-    borderRadius: 4,
-    backgroundColor: '#ddd',
-  },
-  textContainer: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    flexDirection: 'column'
-  },
-  imageContainer: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
-    // justifyContent:'flex-end'
-  },
-
   headerButton: {
     marginRight: 15,
     padding: 5,
   },
-
   inlineRefreshButton: {
-    paddingLeft:5,
-  },
-  headerRightContainer: { // 이 스타일은 TabTwoScreen에서 사용되지 않음
     flexDirection: 'row',
-    marginRight: 5,
+    alignItems: 'center',
+  },
+  locationIcon: {
+    marginLeft: 5,
   },
   locationInfoContainer:{
     flexDirection:'row',
