@@ -3,7 +3,7 @@ import 'dotenv/config';
 export default {
 
     expo: {
-        name: "madcamp01",
+        name: "네이보",
         slug: "madcamp01",
         version: "1.0.0",
         orientation: "portrait",

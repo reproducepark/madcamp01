@@ -6,8 +6,9 @@ import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getPostsInViewport, NearByViewportResponse, Viewport } from '../../api/post';
 import MapComponent from '../components/MapComponent';
-import BottomSheetContent from '../components/BottomSheetContent'; // 수정된 BottomSheetContent 임포트
+import BottomSheetContent from '../components/BottomSheetContent';
 import MapView, { Region } from 'react-native-maps';
+import { useFocusEffect } from '@react-navigation/native'; // useFocusEffect 임포트
 
 // 사용할 색상 팔레트를 상수로 정의합니다.
 const COLOR_PALETTE = {
@@ -33,14 +34,15 @@ export function TabThreeScreen() {
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
 
+  // 현재 위치 새로고침을 위한 상태 추가
+  const [refreshLocationTrigger, setRefreshLocationTrigger] = useState(0);
+
   const bottomSheetRef = useRef<BottomSheet>(null);
   const mapRef = useRef<MapView>(null);
-  // BottomSheetContent의 ref를 추가합니다.
-  const bottomSheetContentRef = useRef<any>(null); // BottomSheetContent의 scrollToTop 메서드를 호출하기 위함
+  const bottomSheetContentRef = useRef<any>(null);
 
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
-  // 애니메이션을 위한 useRef 추가
   const loadPostsButtonOpacity = useRef(new Animated.Value(1)).current;
   const myLocationButtonOpacity = useRef(new Animated.Value(1)).current;
 
@@ -48,51 +50,69 @@ export function TabThreeScreen() {
 
   // 바텀 시트 상태 변경에 따라 버튼 애니메이션 실행
   useEffect(() => {
-    // '이 지역 검색하기' 버튼 애니메이션
     Animated.timing(loadPostsButtonOpacity, {
-      toValue: isBottomSheetOpen ? 0 : 1, // 바텀시트가 열리면 0 (투명), 닫히면 1 (불투명)
-      duration: 300, // 0.3초
+      toValue: isBottomSheetOpen ? 0 : 1,
+      duration: 300,
       useNativeDriver: true,
     }).start();
 
-    // '현재 위치로' 버튼 애니메이션
     Animated.timing(myLocationButtonOpacity, {
-      toValue: isBottomSheetOpen ? 0 : 1, // 바텀시트가 열리면 0 (투명) 또는 1 (불투명)
-      duration: 300, // 0.3초
+      toValue: isBottomSheetOpen ? 0 : 1,
+      duration: 300,
       useNativeDriver: true,
     }).start();
   }, [isBottomSheetOpen, loadPostsButtonOpacity, myLocationButtonOpacity]);
 
-
-  // 초기 위치 설정 로직 및 현재 위치 저장
-  useEffect(() => {
-    (async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('위치 권한 필요', '이 기능을 사용하려면 위치 권한이 필요합니다.');
-          const defaultRegion = { latitude: 36.3504, longitude: 127.3845, latitudeDelta: 0.0922, longitudeDelta: 0.0421 };
-          setInitialMapRegion(defaultRegion);
-          setCurrentRegion(defaultRegion);
-          return;
-        }
-
-        const location = await Location.getCurrentPositionAsync({});
-        const coords = location.coords;
-        setUserLocation(coords); // 사용자 위치 저장
-
-        const regionData = { latitude: coords.latitude, longitude: coords.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 };
-        setInitialMapRegion(regionData);
-        setCurrentRegion(regionData);
-      } catch (err) {
-        console.error("현재 위치를 가져오는 중 오류 발생:", err);
-        Alert.alert('위치 오류', '현재 위치를 가져올 수 없습니다. 기본 위치로 지도를 로드합니다.');
+  // 위치 정보를 가져오는 비동기 함수
+  const fetchLocation = async () => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('위치 권한 필요', '이 기능을 사용하려면 위치 권한이 필요합니다.');
         const defaultRegion = { latitude: 36.3504, longitude: 127.3845, latitudeDelta: 0.0922, longitudeDelta: 0.0421 };
         setInitialMapRegion(defaultRegion);
         setCurrentRegion(defaultRegion);
+        return;
       }
-    })();
-  }, []);
+
+      const location = await Location.getCurrentPositionAsync({});
+      const coords = location.coords;
+      setUserLocation(coords);
+
+      const regionData = { latitude: coords.latitude, longitude: coords.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 };
+      setInitialMapRegion(regionData);
+      setCurrentRegion(regionData);
+
+      // 지도를 현재 위치로 이동
+      if (mapRef.current) {
+        mapRef.current.animateToRegion(regionData, 1000);
+      }
+
+    } catch (err) {
+      console.error("현재 위치를 가져오는 중 오류 발생:", err);
+      Alert.alert('위치 오류', '현재 위치를 가져올 수 없습니다. 기본 위치로 지도를 로드합니다.');
+      const defaultRegion = { latitude: 36.3504, longitude: 127.3845, latitudeDelta: 0.0922, longitudeDelta: 0.0421 };
+      setInitialMapRegion(defaultRegion);
+      setCurrentRegion(defaultRegion);
+    }
+  };
+
+  // 탭에 들어올 때마다 위치 정보 업데이트 (useFocusEffect 사용)
+  useFocusEffect(
+    useCallback(() => {
+      // 탭 포커스 시 위치를 새로 가져옵니다.
+      fetchLocation();
+    }, []) // 의존성 배열이 비어있으므로 컴포넌트가 마운트되거나 포커스될 때 한 번만 실행됩니다.
+  );
+
+  // '현재 위치로' 버튼 클릭 시 위치 정보 업데이트 (refreshLocationTrigger 변경 시)
+  useEffect(() => {
+    // refreshLocationTrigger가 0이 아니면 (즉, 버튼 클릭으로 인해 변경되었으면) 위치를 새로 가져옵니다.
+    if (refreshLocationTrigger > 0) {
+      fetchLocation();
+    }
+  }, [refreshLocationTrigger]);
+
 
   const handleLoadPosts = async () => {
     if (!currentRegion) {
@@ -118,19 +138,18 @@ export function TabThreeScreen() {
       setPosts(fetchedPosts);
       console.log("가져온 게시글:", fetchedPosts);
 
-      // 게시글을 성공적으로 가져온 후에 바텀시트 열기
       if (bottomSheetRef.current) {
         if (fetchedPosts.length > 0) {
-          bottomSheetRef.current.snapToIndex(0); // 게시글이 있으면 첫 번째 스냅포인트(30%)로 열기
+          bottomSheetRef.current.snapToIndex(0);
         } else {
-          bottomSheetRef.current.snapToIndex(1); // 게시글이 없으면 두 번째 스냅포인트(50%)로 열기 (안내문 표시)
+          bottomSheetRef.current.snapToIndex(1);
         }
       }
 
     } catch (err) {
       console.error("게시글 가져오는 중 오류 발생:", err);
       setError('게시글을 불러오지 못했습니다. 다시 시도해 주세요.');
-      bottomSheetRef.current?.close(); // 오류 발생 시 닫음
+      bottomSheetRef.current?.close();
     } finally {
       setLoadingPosts(false);
     }
@@ -139,50 +158,34 @@ export function TabThreeScreen() {
   const handleMarkerPress = useCallback((post: NearByViewportResponse) => {
     console.log("마커 클릭:", post.title);
     if (bottomSheetRef.current) {
-      bottomSheetRef.current?.snapToIndex(0); // 첫 번째 스냅포인트(30%)로 열기
-      // 마커 클릭 시에도 스크롤 맨 위로 이동
+      bottomSheetRef.current?.snapToIndex(0);
       if (bottomSheetContentRef.current) {
         bottomSheetContentRef.current.scrollToTop();
       }
     }
   }, []);
 
-  // 바텀 시트 상태 변경 핸들러
   const handleBottomSheetChanges = useCallback((index: number) => {
-    setIsBottomSheetOpen(index > -1); // 바텀 시트가 닫힌 상태(-1)가 아니면 열린 것으로 간주
+    setIsBottomSheetOpen(index > -1);
 
-    // 바텀 시트가 열릴 때마다 목록을 맨 위로 스크롤합니다.
     if (index > -1 && bottomSheetContentRef.current) {
       bottomSheetContentRef.current.scrollToTop();
     }
   }, []);
 
-
   const toggleBottomSheet = useCallback(() => {
     if (isBottomSheetOpen) {
       bottomSheetRef.current?.close();
     } else {
-      // 바텀시트가 닫혀있을 때 '목록 보기'를 누르면 게시글을 새로고침하고 엽니다.
       handleLoadPosts();
     }
   }, [isBottomSheetOpen, handleLoadPosts]);
 
-  // 현재 위치로 지도를 이동시키는 함수
+  // 현재 위치로 지도를 이동시키는 함수 (refreshLocationTrigger 상태 변경)
   const moveToCurrentLocation = useCallback(() => {
-    if (userLocation && mapRef.current) {
-      const newRegion = {
-        latitude: userLocation.latitude,
-        longitude: userLocation.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      };
-      mapRef.current.animateToRegion(newRegion, 1000); // 1초 동안 애니메이션
-      setCurrentRegion(newRegion); // 현재 지도 영역도 업데이트
-    } else {
-      Alert.alert('오류', '현재 위치 정보를 가져올 수 없습니다.');
-    }
-  }, [userLocation]);
-
+    // refreshLocationTrigger 값을 증가시켜 useEffect를 트리거합니다.
+    setRefreshLocationTrigger(prev => prev + 1);
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -200,13 +203,10 @@ export function TabThreeScreen() {
             onRegionChangeComplete={setCurrentRegion}
             posts={posts}
             onMarkerPress={handleMarkerPress}
-            userLocation={userLocation} // userLocation prop 전달
+            userLocation={userLocation}
           />
 
-          {/* 바텀시트가 열려있지 않을 때만 "이 지역 검색하기" 버튼 표시 */}
-          {/* Animated.View 로 감싸서 opacity 애니메이션 적용 */}
           <Animated.View style={[styles.loadPostsButtonContainer, { opacity: loadPostsButtonOpacity }]}>
-            {/* isBottomSheetOpen 조건은 Animated.View의 opacity가 0일 때 터치 이벤트를 막기 위해 유지 */}
             {!isBottomSheetOpen && (
               <TouchableOpacity
                 style={styles.loadPostsButton}
@@ -224,29 +224,23 @@ export function TabThreeScreen() {
             )}
           </Animated.View>
 
-
           {error && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
 
-          {/* 바텀시트가 열려있지 않을 때만 "현재 위치로" 버튼 표시 */}
-          {/* Animated.View 로 감싸서 opacity 애니메이션 적용 */}
           <Animated.View style={[styles.myLocationButtonContainer, { opacity: myLocationButtonOpacity }]}>
-            {/* isBottomSheetOpen 조건은 Animated.View의 opacity가 0일 때 터치 이벤트를 막기 위해 유지 */}
             {initialMapRegion && !isBottomSheetOpen && (
               <TouchableOpacity
                 style={styles.myLocationButton}
-                onPress={moveToCurrentLocation}
+                onPress={moveToCurrentLocation} // 이 부분에서 setRefreshLocationTrigger가 호출됩니다.
               >
                 <Ionicons name="locate" size={28} color={COLOR_PALETTE.GRAYISH_BROWN_DARK} />
               </TouchableOpacity>
             )}
           </Animated.View>
 
-
-          {/* 바텀시트 열기/닫기 버튼 (기존 위치 유지) */}
           {initialMapRegion && (
             <View style={styles.toggleListButtonContainer}>
               <TouchableOpacity
@@ -260,13 +254,12 @@ export function TabThreeScreen() {
             </View>
           )}
 
-
           <BottomSheet
             ref={bottomSheetRef}
-            index={-1} // 초기에는 바텀 시트가 닫힌 상태로 시작합니다.
+            index={-1}
             snapPoints={snapPoints}
             enablePanDownToClose={true}
-            onChange={handleBottomSheetChanges} // 여기에서 상태 변경을 감지합니다.
+            onChange={handleBottomSheetChanges}
           >
             <BottomSheetContent
               ref={bottomSheetContentRef}
@@ -285,7 +278,6 @@ const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
   },
-  // '이 지역 검색하기' 버튼 컨테이너 추가 및 스타일 분리
   loadPostsButtonContainer: {
     position: 'absolute',
     top: 60,
@@ -304,16 +296,16 @@ const styles = StyleSheet.create({
     elevation: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center', // 추가: 수평 중앙 정렬
+    justifyContent: 'center',
   },
   loadPostsButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: COLOR_PALETTE.GRAYISH_BROWN_DARK,
     marginLeft: 5,
-    lineHeight: 16 * 1.2, // 폰트 사이즈에 비례하여 lineHeight 조정 (조절 필요할 수 있음)
-    includeFontPadding: false, // 폰트 패딩 제거 (Android)
-    textAlignVertical: 'center', // 수직 중앙 정렬 (Android)
+    lineHeight: 16 * 1.2,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   toggleListButtonContainer: {
     position: 'absolute',
@@ -337,7 +329,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLOR_PALETTE.WHITE,
   },
-  // '현재 위치로' 버튼 컨테이너 추가 및 스타일 분리
   myLocationButtonContainer: {
     position: 'absolute',
     bottom: 90,
