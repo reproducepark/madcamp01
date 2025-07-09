@@ -1,4 +1,3 @@
-// components/MapComponent.tsx
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps'; // Region 타입을 여기서 임포트
@@ -11,6 +10,7 @@ interface MapComponentProps {
   onRegionChangeComplete: (region: Region) => void;
   posts: NearByViewportResponse[];
   onMarkerPress: (post: NearByViewportResponse) => void;
+  mapRef: React.RefObject<MapView | null>; // MapView ref 타입을 null을 포함하도록 수정
 }
 
 const MapComponent: React.FC<MapComponentProps> = ({
@@ -19,15 +19,17 @@ const MapComponent: React.FC<MapComponentProps> = ({
   onRegionChangeComplete,
   posts,
   onMarkerPress,
+  mapRef, // prop으로 받기
 }) => {
   return (
     <MapView
+      ref={mapRef} // ref 연결
       style={styles.map}
       provider={PROVIDER_GOOGLE}
       initialRegion={initialMapRegion || undefined} // null일 경우 undefined로 넘겨 경고 방지
       onRegionChangeComplete={onRegionChangeComplete}
       showsUserLocation
-      showsMyLocationButton
+      // showsMyLocationButton // 이 부분을 제거합니다.
       customMapStyle={mapStyle}
     >
       {posts.map((post) => (
@@ -73,13 +75,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'orange',
   },
 });
-
-// MapView에서 Region 타입을 사용하므로 여기에 정의 (이 부분은 이제 필요 없습니다. 위에서 임포트합니다.)
-// interface Region {
-//   latitude: number;
-//   longitude: number;
-//   latitudeDelta: number;
-//   longitudeDelta: number;
-// }
 
 export default MapComponent;

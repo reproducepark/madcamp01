@@ -1,13 +1,13 @@
-// screens/TabThreeScreen.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, Alert, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { getPostsInViewport, NearByViewportResponse, Viewport } from '../../api/post'; // Adjust the import path as needed
-import MapComponent from '../components/MapComponent'; // 새로 생성할 컴포넌트
-import BottomSheetContent from '../components/BottomSheetContent'; // 새로 생성할 컴포넌트
+import { getPostsInViewport, NearByViewportResponse, Viewport } from '../../api/post';
+import MapComponent from '../components/MapComponent';
+import BottomSheetContent from '../components/BottomSheetContent';
+import MapView from 'react-native-maps'; // MapView import 추가
 
 export function TabThreeScreen() {
   const [currentRegion, setCurrentRegion] = useState<null | Region>(null);
@@ -15,23 +15,37 @@ export function TabThreeScreen() {
   const [posts, setPosts] = useState<NearByViewportResponse[]>([]);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null); // 사용자 현재 위치 저장
 
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const mapRef = useRef<MapView>(null); // MapView ref 추가
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
   const snapPoints = ['30%', '40%', '80%'];
 
-  // 초기 위치 설정 로직
+  // 초기 위치 설정 로직 및 현재 위치 저장
   useEffect(() => {
     (async () => {
       try {
-        const { coords } = await Location.getCurrentPositionAsync({});
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('위치 권한 필요', '이 기능을 사용하려면 위치 권한이 필요합니다.');
+          const defaultRegion = { latitude: 36.3504, longitude: 127.3845, latitudeDelta: 0.0922, longitudeDelta: 0.0421 };
+          setInitialMapRegion(defaultRegion);
+          setCurrentRegion(defaultRegion);
+          return;
+        }
+
+        const location = await Location.getCurrentPositionAsync({});
+        const coords = location.coords;
+        setUserLocation(coords); // 사용자 위치 저장
+
         const regionData = { latitude: coords.latitude, longitude: coords.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 };
         setInitialMapRegion(regionData);
         setCurrentRegion(regionData);
       } catch (err) {
         console.error("현재 위치를 가져오는 중 오류 발생:", err);
-        Alert.alert('위치 오류', '현재 위치를 가져올 수 없습니다.');
+        Alert.alert('위치 오류', '현재 위치를 가져올 수 없습니다. 기본 위치로 지도를 로드합니다.');
         const defaultRegion = { latitude: 36.3504, longitude: 127.3845, latitudeDelta: 0.0922, longitudeDelta: 0.0421 };
         setInitialMapRegion(defaultRegion);
         setCurrentRegion(defaultRegion);
@@ -65,9 +79,9 @@ export function TabThreeScreen() {
 
       if (bottomSheetRef.current) {
         if (fetchedPosts.length > 0) {
-          bottomSheetRef.current.snapToIndex(1); // 게시글이 있으면 60%로 열기
+          bottomSheetRef.current.snapToIndex(1); // 게시글이 있으면 40%로 열기
         } else {
-          bottomSheetRef.current.snapToIndex(2); // 게시글이 없으면 100%로 열기 (안내문 표시)
+          bottomSheetRef.current.snapToIndex(2); // 게시글이 없으면 80%로 열기 (안내문 표시)
         }
       }
 
@@ -83,7 +97,7 @@ export function TabThreeScreen() {
   const handleMarkerPress = useCallback((post: NearByViewportResponse) => {
     console.log("마커 클릭:", post.title);
     if (bottomSheetRef.current) {
-      bottomSheetRef.current?.snapToIndex(1); // 60%
+      bottomSheetRef.current?.snapToIndex(1); // 40%
     }
     // TODO: FlatList에서 해당 아이템으로 스크롤하는 로직 추가
   }, []);
@@ -102,6 +116,23 @@ export function TabThreeScreen() {
     }
   }, [isBottomSheetOpen, posts.length]);
 
+  // 현재 위치로 지도를 이동시키는 함수
+  const moveToCurrentLocation = useCallback(() => {
+    if (userLocation && mapRef.current) {
+      const newRegion = {
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+      mapRef.current.animateToRegion(newRegion, 1000); // 1초 동안 애니메이션
+      setCurrentRegion(newRegion); // 현재 지도 영역도 업데이트
+    } else {
+      Alert.alert('오류', '현재 위치 정보를 가져올 수 없습니다.');
+    }
+  }, [userLocation]);
+
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       {!initialMapRegion ? (
@@ -112,6 +143,7 @@ export function TabThreeScreen() {
       ) : (
         <View style={styles.mapContainer}>
           <MapComponent
+            mapRef={mapRef} // ref 전달
             initialMapRegion={initialMapRegion}
             currentRegion={currentRegion}
             onRegionChangeComplete={setCurrentRegion}
@@ -141,14 +173,26 @@ export function TabThreeScreen() {
             </View>
           )}
 
-          <TouchableOpacity
-            style={styles.toggleListButton}
-            onPress={toggleBottomSheet}
-          >
-            <Text style={styles.toggleListButtonText}>
-              {isBottomSheetOpen ? '목록 숨기기' : '목록 보기'}
-            </Text>
-          </TouchableOpacity>
+          {initialMapRegion && ( // 지도가 로드된 후에만 버튼 표시
+            <View style={styles.bottomButtonsContainer}>
+              <TouchableOpacity
+                style={styles.toggleListButton}
+                onPress={toggleBottomSheet}
+              >
+                <Text style={styles.toggleListButtonText}>
+                  {isBottomSheetOpen ? '목록 숨기기' : '목록 보기'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.myLocationButton}
+                onPress={moveToCurrentLocation}
+              >
+                <Text style={styles.myLocationButtonText}>
+                  <Ionicons name="navigate-circle-outline" size={16} color="#fff" /> 현재 위치로
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <BottomSheet
             ref={bottomSheetRef}
@@ -160,7 +204,7 @@ export function TabThreeScreen() {
             <BottomSheetContent
               posts={posts}
               loadingPosts={loadingPosts}
-              bottomSheetRef={bottomSheetRef} // BottomSheetContent에서 직접 제어할 수 있도록 ref 전달
+              bottomSheetRef={bottomSheetRef}
             />
           </BottomSheet>
         </View>
@@ -196,10 +240,15 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     marginLeft: 5,
   },
-  toggleListButton: {
+  bottomButtonsContainer: {
     position: 'absolute',
     bottom: 20,
     alignSelf: 'center',
+    flexDirection: 'row', // 버튼들을 가로로 배치
+    gap: 10, // 버튼 사이 간격
+    zIndex: 1,
+  },
+  toggleListButton: {
     backgroundColor: '#ff7f00',
     paddingVertical: 12,
     paddingHorizontal: 25,
@@ -209,13 +258,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
-    zIndex: 1,
   },
-  // 이곳에 toggleListButtonText 스타일을 추가합니다.
   toggleListButtonText: {
     fontSize: 17,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  myLocationButton: {
+    backgroundColor: '#007AFF', // 현재 위치 버튼 색상
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    flexDirection: 'row', // 아이콘과 텍스트를 가로로 배치
+    alignItems: 'center',
+  },
+  myLocationButtonText: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 5, // 아이콘과 텍스트 사이 간격
   },
   loading: {
     flex: 1,
