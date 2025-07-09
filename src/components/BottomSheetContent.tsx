@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#e0e0e0',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#fff',
   },
   listHeaderText: {
     fontSize: 17,
