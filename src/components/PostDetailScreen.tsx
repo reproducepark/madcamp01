@@ -592,7 +592,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: 20,
-    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#eee',
     paddingTop: 15,
     paddingHorizontal: 10,
