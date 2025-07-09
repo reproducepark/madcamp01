@@ -44,16 +44,22 @@
     - npm 또는 yarn
     - Expo 앱 설치 및 가입
 <br/>
+
 - 프로젝트 클론
-```bash
+
+```
 git clone https://github.com/reproducepark/madcamp01.git
 cd madcamp01
 ```
+
 - 패키지 설치
-```bash
+
+```
 npm install
 ```
+
 - expo에서 실행
-```bash
+
+```
 npx expo start
 ```
