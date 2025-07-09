@@ -7,7 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getPostsInViewport, NearByViewportResponse, Viewport } from '../../api/post';
 import MapComponent from '../components/MapComponent';
 import BottomSheetContent from '../components/BottomSheetContent';
-import MapView from 'react-native-maps'; // MapView import 추가
+import MapView, { Region } from 'react-native-maps'; // MapView와 Region import
 
 export function TabThreeScreen() {
   const [currentRegion, setCurrentRegion] = useState<null | Region>(null);
@@ -18,7 +18,7 @@ export function TabThreeScreen() {
   const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null); // 사용자 현재 위치 저장
 
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const mapRef = useRef<MapView>(null); // MapView ref 추가
+  const mapRef = useRef<MapView>(null);
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
   const snapPoints = ['30%', '40%', '80%'];
@@ -143,12 +143,13 @@ export function TabThreeScreen() {
       ) : (
         <View style={styles.mapContainer}>
           <MapComponent
-            mapRef={mapRef} // ref 전달
+            mapRef={mapRef}
             initialMapRegion={initialMapRegion}
             currentRegion={currentRegion}
             onRegionChangeComplete={setCurrentRegion}
             posts={posts}
             onMarkerPress={handleMarkerPress}
+            userLocation={userLocation} // userLocation prop 전달
           />
 
           {!isBottomSheetOpen && (
@@ -244,8 +245,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     alignSelf: 'center',
-    flexDirection: 'row', // 버튼들을 가로로 배치
-    gap: 10, // 버튼 사이 간격
+    flexDirection: 'row',
+    gap: 10,
     zIndex: 1,
   },
   toggleListButton: {
@@ -265,7 +266,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   myLocationButton: {
-    backgroundColor: '#007AFF', // 현재 위치 버튼 색상
+    backgroundColor: '#007AFF',
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 25,
@@ -274,14 +275,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
-    flexDirection: 'row', // 아이콘과 텍스트를 가로로 배치
+    flexDirection: 'row',
     alignItems: 'center',
   },
   myLocationButtonText: {
     fontSize: 17,
     fontWeight: 'bold',
     color: '#fff',
-    marginLeft: 5, // 아이콘과 텍스트 사이 간격
+    marginLeft: 5,
   },
   loading: {
     flex: 1,
@@ -304,11 +305,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-
-// MapView에서 Region 타입을 사용하므로 여기에 정의
-interface Region {
-  latitude: number;
-  longitude: number;
-  latitudeDelta: number;
-  longitudeDelta: number;
-}
