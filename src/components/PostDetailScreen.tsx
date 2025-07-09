@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useLayoutEffect } from 'react';
-import { Modal, TouchableOpacity, View, Text, StyleSheet, ActivityIndicator, Image, Dimensions, Pressable, Alert, TextInput, RefreshControl, Platform } from 'react-native';
+import { Modal, TouchableOpacity, View, Text, StyleSheet, ActivityIndicator, Image, Dimensions, Pressable, Alert, TextInput, RefreshControl, Platform, Keyboard } from 'react-native'; // Keyboard 임포트 추가
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getPostById, PostByIdResponse, deletePost, updatePost, getCommentsByPostId, createComment, updateComment, deleteComment, Comment, ToggleLikePayload, toggleLike, getLikesCountByPostId, getLikeStatusForUser, LikesCountResponse, LikeStatusResponse } from '../../api/post';
 import { RouteProp } from '@react-navigation/native';
@@ -223,6 +223,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
       await createComment(postId, { userId: currentUserId, content: newCommentText });
       setNewCommentText('');
       fetchComments();
+      Keyboard.dismiss(); // 댓글 작성 성공 후 키보드 닫기
     } catch (err: any) {
       console.error("댓글 작성 실패:", err);
       Alert.alert('댓글 작성 실패', `댓글 작성에 실패했습니다: ${err.message}`);
@@ -248,6 +249,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
       setEditingCommentId(null);
       setEditingCommentText('');
       fetchComments();
+      Keyboard.dismiss(); // 댓글 수정 성공 후 키보드 닫기
     } catch (err: any) {
       console.error("댓글 수정 실패:", err);
       Alert.alert('댓글 수정 실패', `댓글 수정에 실패했습니다: ${err.message}`);
@@ -412,9 +414,10 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
             <TextInput
               style={styles.commentInput}
               placeholder="댓글을 입력하세요..."
-              multiline
               value={newCommentText}
               onChangeText={setNewCommentText}
+              returnKeyType="done"
+              onSubmitEditing={handleCreateComment}
             />
             <TouchableOpacity style={styles.submitCommentButton} onPress={handleCreateComment}>
               <Text style={styles.submitCommentButtonText}>작성</Text>
@@ -436,7 +439,8 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
                       style={styles.editingCommentInput}
                       value={editingCommentText}
                       onChangeText={setEditingCommentText}
-                      multiline
+                      returnKeyType="done" // '완료' 버튼 표시
+                      onSubmitEditing={() => handleUpdateComment(comment.id)} // '완료' 버튼 누르면 댓글 수정
                     />
                     <View style={styles.editingCommentButtons}>
                       <TouchableOpacity style={styles.editSaveButton} onPress={() => handleUpdateComment(comment.id)}>
@@ -663,7 +667,7 @@ const styles = StyleSheet.create({
   commentInput: {
     flex: 1,
     padding: 10,
-    minHeight: 50,
+    height: 50, // 단일 라인으로 높이 고정
     fontSize: 16,
     color: '#555',
   },
@@ -735,7 +739,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     fontSize: 16,
-    minHeight: 60,
+    height: 50, // 단일 라인으로 높이 고정
     marginBottom: 10,
   },
   editingCommentButtons: {
