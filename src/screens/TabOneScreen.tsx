@@ -1,6 +1,7 @@
+// TabOneScreen.tsx 파일 수정
 import React, { useState, useEffect, useCallback } from 'react';
 import { Platform, StatusBar, Text, View, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
-import { NearByPostsResponse, createPost, getNearbyPosts } from '../../api/post';
+import { NearByPostsResponse, createPost, getNearbyPosts, getLikesCountByPostId } from '../../api/post'; // getLikesCountByPostId import
 import { updateUserLocation } from '../../api/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native';
@@ -18,8 +19,8 @@ const COLOR_PALETTE = {
   BLUE_DARK: "#072ac8",
   BLUE_MEDIUM: "#1e96fc",
   BLUE_LIGHT: "#a2d6f9",
-  MUSTARD_LIGHT: "#f85e00", // 닉네임 등에 사용될 수 있는 색상
-  MUSTARD_DARK: "#a594f9",  // 주황색을 대체할 메인 강조 색상
+  MUSTARD_LIGHT: "#6c757d", // 닉네임 등에 사용될 수 있는 색상
+  MUSTARD_DARK: "#6c757d",  // 주황색을 대체할 메인 강조 색상
   // 무채색은 그대로 유지
   WHITE: '#fff',
   BLACK: '#000',
@@ -28,6 +29,7 @@ const COLOR_PALETTE = {
   GRAY_LIGHT: '#888',
   GRAY_VERY_LIGHT: '#999',
   BORDER_COLOR: '#e0e0e0',
+  LIKE_COLOR: '#e71d36', // 좋아요 아이콘 색상
 };
 
 
@@ -46,6 +48,9 @@ export function TabOneScreen() {
   const [locationUpdateMessage, setLocationUpdateMessage] = useState(''); // 위치 업데이트 메시지 상태
 
   const [currentAdminDong, setCurrentAdminDong] = useState<string | null>(null);
+
+  // 좋아요 개수를 저장할 상태 추가
+  const [likesCount, setLikesCount] = useState<{ [postId: number]: number }>({});
 
   const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -89,6 +94,24 @@ export function TabOneScreen() {
     loadAdminDong();
   },[]);
 
+  // 좋아요 개수를 가져오는 함수
+  const fetchLikesCount = useCallback(async (postId: number) => {
+    try {
+      const response = await getLikesCountByPostId(postId);
+      setLikesCount(prevCounts => ({
+        ...prevCounts,
+        [postId]: response.likeCount,
+      }));
+    } catch (error) {
+      console.error(`Error fetching likes count for post ${postId}:`, error);
+      setLikesCount(prevCounts => ({
+        ...prevCounts,
+        [postId]: 0, // 오류 발생 시 0으로 설정 또는 다른 기본값 설정
+      }));
+    }
+  }, []);
+
+
   const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
@@ -105,13 +128,18 @@ export function TabOneScreen() {
       const data = await getNearbyPosts(lat, lon);
       setListData(data.nearbyPosts);
 
+      // 각 게시물에 대한 좋아요 개수 가져오기
+      data.nearbyPosts.forEach((post: NearByPostsResponse) => {
+        fetchLikesCount(post.id);
+      });
+
     } catch (e: any) {
       console.error('근처 글 조회 실패:', e);
       Alert.alert('오류', '글을 불러오는 데 실패했습니다: ' + e.message);
     } finally {
       setLoading(false);
     }
-  },[]);
+  },[fetchLikesCount]);
 
   // useFocusEffect 훅을 사용하여 화면이 포커스될 때마다 fetchPosts 실행
   useFocusEffect(
@@ -194,9 +222,9 @@ export function TabOneScreen() {
             disabled={isLocationRefreshing}
           >
             {isLocationRefreshing ? (
-              <ActivityIndicator size="small" color={COLOR_PALETTE.MUSTARD_DARK} />
+              <ActivityIndicator size="small" color={COLOR_PALETTE.MUSTARD_LIGHT} />
             ) : (
-              <Ionicons name="refresh" size={24} color={COLOR_PALETTE.MUSTARD_DARK} />
+              <Ionicons name="refresh" size={24} color={COLOR_PALETTE.MUSTARD_LIGHT} />
             )}
           </TouchableOpacity>
           <TouchableOpacity
@@ -251,20 +279,27 @@ export function TabOneScreen() {
 
   const renderItem = ({ item }: { item: NearByPostsResponse }) => (
     <TouchableOpacity style={styles.postItem} onPress={() => handleItemPress(item.id)}>
-      <View style={[styles.itemContent, !item.image_url && styles.itemContentFullWidth]}>
+      <View style={styles.itemMainContent}>
         <Text style={styles.itemTitle}>{item.title}</Text>
         <View style={styles.nicknameContainer}>
           <Text style={styles.nicknameRight}>{item.nickname}</Text>
         </View>
-        <View style={styles.metaInfoContainer}>
-          <Text style={styles.dateTimeLocation}>
-            {formatRelativeTime(item.created_at)} · {item.admin_dong}
+        <Text style={styles.dateTimeLocation}>
+          {formatRelativeTime(item.created_at)} · {item.admin_dong}
+        </Text>
+      </View>
+      
+      <View style={styles.rightSideContentContainer}>
+        {item.image_url && (
+          <Image source={{ uri: item.image_url }} style={styles.itemImage} />
+        )}
+        <View style={styles.likesCountContainer}>
+          <Ionicons name="heart" size={16} color={COLOR_PALETTE.LIKE_COLOR} />
+          <Text style={styles.likesCountText}>
+            {likesCount[item.id] !== undefined ? likesCount[item.id] : '로딩중...'}
           </Text>
         </View>
       </View>
-      {item.image_url && (
-        <Image source={{ uri: item.image_url }} style={styles.itemImage} />
-      )}
     </TouchableOpacity>
   );
 
@@ -284,7 +319,7 @@ export function TabOneScreen() {
                 {isLocationRefreshing ? (
                     <ActivityIndicator size="small" color={COLOR_PALETTE.MUSTARD_DARK} style={styles.locationIcon} />
                 ) : (
-                    <Ionicons name="navigate-circle" size={20} color={COLOR_PALETTE.MUSTARD_DARK} style={styles.locationIcon} />
+                    <Ionicons name="navigate-circle" size={20} color={COLOR_PALETTE.LIKE_COLOR} style={styles.locationIcon} />
                 )}
             </TouchableOpacity>
         </View>
@@ -441,7 +476,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     right: 20,
     bottom: 20,
-    backgroundColor: COLOR_PALETTE.MUSTARD_DARK, // 변경: 주황색 -> 진한 머스타드
+    backgroundColor: COLOR_PALETTE.LIKE_COLOR, // 변경: 주황색 -> 진한 머스타드
     borderRadius: 28,
     elevation: 8,
     shadowColor: COLOR_PALETTE.BLACK, // 변경: 무채색 유지
@@ -455,26 +490,28 @@ const styles = StyleSheet.create({
   },
   postItem: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end', // 모든 항목의 하단을 정렬
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: COLOR_PALETTE.BORDER_COLOR, // 변경: 무채색 유지
     backgroundColor: COLOR_PALETTE.WHITE, // 변경: 흰색은 유지
+  },
+  itemMainContent: { // 텍스트 콘텐츠를 위한 새로운 컨테이너
+    flex: 1,
+    justifyContent: 'space-between', // 내부 콘텐츠를 위아래로 분산
+    minHeight: 70, // 이미지 높이에 맞춰 최소 높이 설정 (이미지가 없을 때도 레이아웃 유지)
+  },
+  rightSideContentContainer: { // 이미지와 좋아요 개수를 감싸는 컨테이너
+    marginLeft: 12,
+    alignItems: 'flex-end', // 이 컨테이너 내의 자식 요소들을 오른쪽으로 정렬
+    justifyContent: 'flex-end', // 세로 공간이 남으면 콘텐츠를 아래로 정렬
   },
   itemImage: {
     width: 70,
     height: 70,
     borderRadius: 8,
     backgroundColor: '#eee', // 변경: 무채색 유지
-    marginLeft: 12,
-  },
-  itemContent: {
-    flex: 1,
-    paddingLeft: 10,
-  },
-  itemContentFullWidth: {
-    marginRight: 0,
-    paddingRight: 20,
+    marginBottom: 4, // 이미지와 좋아요 개수 사이 간격
   },
   itemTitle: {
     fontSize: 18,
@@ -556,12 +593,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom:5,
   },
-  metaInfoContainer: {
-    borderBottomColor: COLOR_PALETTE.BORDER_COLOR, // 변경: 무채색 유지
-    alignItems: 'flex-start',
+  metaInfoContainer: { // 이 스타일은 더 이상 사용되지 않지만, 혹시 모를 참조를 위해 남겨둡니다.
+    flexDirection: 'row', 
+    justifyContent: 'flex-start', 
+    alignItems: 'center',
+    marginTop: 4,
   },
   dateTimeLocation: {
     fontSize: 12,
     color: COLOR_PALETTE.GRAY_VERY_LIGHT, // 변경: 무채색 유지
-  }
+  },
+  likesCountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  likesCountText: {
+    fontSize: 12,
+    color: COLOR_PALETTE.MUSTARD_LIGHT, // 좋아요 아이콘과 같은 색상
+    marginLeft: 4,
+  },
 });
