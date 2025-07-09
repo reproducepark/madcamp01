@@ -8,6 +8,7 @@ import { getPostsInViewport, NearByViewportResponse, Viewport } from '../../api/
 import MapComponent from '../components/MapComponent';
 import BottomSheetContent from '../components/BottomSheetContent';
 import MapView, { Region } from 'react-native-maps';
+import { useFocusEffect } from '@react-navigation/native'; // useFocusEffect 임포트
 
 // 사용할 색상 팔레트를 상수로 정의합니다.
 const COLOR_PALETTE = {
@@ -91,10 +92,10 @@ export function TabThreeScreen() {
     })();
   }, []);
 
-  const handleLoadPosts = async () => {
+  const handleLoadPosts = useCallback(async () => { // useCallback으로 감싸서 메모이제이션
     if (!currentRegion) {
       console.log("지도 영역을 아직 사용할 수 없습니다.");
-      Alert.alert('오류', '지도 영역을 사용할 수 없습니다. 지도가 로드될 때까지 기다려 주세요.');
+      // Alert.alert('오류', '지도 영역을 사용할 수 없습니다. 지도가 로드될 때까지 기다려 주세요.'); // 초기 로딩 시 불필요한 알림 방지
       return;
     }
 
@@ -107,8 +108,8 @@ export function TabThreeScreen() {
         centerLon: currentRegion.longitude,
         deltaLat: currentRegion.latitudeDelta,
         deltaLon: currentRegion.longitudeDelta,
-        deltaRatioLat: 0.4,
-        deltaRatioLon: 0.4,
+        deltaRatioLat: 0.8,
+        deltaRatioLon: 0.8,
       };
       console.log("뷰포트에서 게시글 가져오는 중:", viewport);
       const fetchedPosts = await getPostsInViewport(viewport);
@@ -130,7 +131,22 @@ export function TabThreeScreen() {
     } finally {
       setLoadingPosts(false);
     }
-  };
+  }, [currentRegion]); // currentRegion이 변경될 때마다 함수 재생성
+
+  // useFocusEffect를 사용하여 화면이 포커스될 때 게시글 새로고침
+  useFocusEffect(
+    useCallback(() => {
+      // 화면이 포커스될 때 handleLoadPosts 호출
+      // initialMapRegion이 설정된 후에만 호출되도록 조건 추가
+      if (initialMapRegion) {
+        handleLoadPosts();
+      }
+      return () => {
+        // 화면이 블러될 때 필요한 클린업 로직 (옵션)
+      };
+    }, [handleLoadPosts, initialMapRegion]) // handleLoadPosts와 initialMapRegion이 변경될 때마다 effect 재생성
+  );
+
 
   const handleMarkerPress = useCallback((post: NearByViewportResponse) => {
     console.log("마커 클릭:", post.title);
