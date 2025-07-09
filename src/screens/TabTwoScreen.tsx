@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { SafeAreaView, StyleSheet, FlatList, Image, Dimensions, TouchableOpacity, Text, View, RefreshControl, ActivityIndicator, Alert, Platform, StatusBar } from 'react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NearByPostsUpperResponse, getNearbyPostsUpper } from '../../api/post';
 import { updateUserLocation } from '../../api/user';
@@ -45,7 +45,7 @@ export function TabTwoScreen() {
   const [listData, setListData] = useState<NearByPostsUpperResponse[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [isLocationRefreshing, setIsLocationRefreshing] = useState(false);
-  const [currentAdminDong, setCurrentAdminDong] = useState<string | null>(null);
+  const [currentUpperAdminDong, setCurrentUpperAdminDong] = useState<string | null>(null);
   
   // CustomConfirmModal 가시성 상태 (위치 새로고침 확인)
   const [isLocationConfirmModalVisible, setIsLocationConfirmModalVisible] = useState(false); 
@@ -57,29 +57,29 @@ export function TabTwoScreen() {
     console.log("갤러리 아이템 클릭됨:", itemId);
     navigation.navigate('PostDetail', { postId: itemId });
   };
+  const loadAdminDong = async () => {
+    try {
+      const storedAdminDong = await AsyncStorage.getItem('userAdminDong');
+      console.log('현재위치',storedAdminDong);
+      if (storedAdminDong) {
+        const parts = storedAdminDong.split(' ');
+        if (parts.length >= 2) {
+          setCurrentUpperAdminDong(parts[1]); // 두 번째 부분 (예: "대전광역시 유성구 궁동" -> "유성구")
+        } else {
+          setCurrentUpperAdminDong(storedAdminDong); // 예상치 못한 형식일 경우 전체를 사용
+        }
+      } else {
+        setCurrentUpperAdminDong(null);
+      }
+    } catch (e) {
+      console.error('AsyncStorage에서 adminDong 불러오기 실패:',e);
+      setCurrentUpperAdminDong('정보없음')
+    }
+  }
 
   useEffect(()=>{
-    const loadAdminDong = async () => {
-      try {
-        const storedAdminDong = await AsyncStorage.getItem('userAdminDong');
-        console.log('현재위치',storedAdminDong);
-        if (storedAdminDong) {
-          const parts = storedAdminDong.split(' ');
-          if (parts.length >= 2) {
-            setCurrentAdminDong(parts[1]); // 두 번째 부분 (예: "대전광역시 유성구 궁동" -> "유성구")
-          } else {
-            setCurrentAdminDong(storedAdminDong); // 예상치 못한 형식일 경우 전체를 사용
-          }
-        } else {
-          setCurrentAdminDong(null);
-        }
-      } catch (e) {
-        console.error('AsyncStorage에서 adminDong 불러오기 실패:',e);
-        setCurrentAdminDong('정보없음')
-      }
-    }
     loadAdminDong();
-  },[]);
+  },[AsyncStorage]);
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -129,9 +129,9 @@ export function TabTwoScreen() {
 
       const parts = updateRes.adminDong.split(' ');
       if (parts.length >= 2) {
-        setCurrentAdminDong(parts[1]);
+        setCurrentUpperAdminDong(parts[1]);
       } else {
-        setCurrentAdminDong(updateRes.adminDong);
+        setCurrentUpperAdminDong(updateRes.adminDong);
       }
       await AsyncStorage.setItem('userLat', String(coords.latitude));
       await AsyncStorage.setItem('userLon', String(coords.longitude));
@@ -158,9 +158,16 @@ export function TabTwoScreen() {
     navigation.navigate('MyPage');
   }, [navigation]);
 
-  useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchPosts();
+      loadAdminDong();
+      return () => {
+        // 화면이 블러(blur)될 때 필요한 클린업 작업 (선택 사항)
+        // 예를 들어, 로딩 상태를 초기화하거나 구독을 해제할 수 있습니다.
+      };
+    }, [fetchPosts])
+  );
 
   const renderItem = React.useCallback(({ item, index }: { item: NearByPostsUpperResponse, index: number }) => {
     if (!item.image_url) {
@@ -184,7 +191,7 @@ export function TabTwoScreen() {
       <View style={styles.navContainer}>
         <View style={styles.locationInfoContainer}>
             <Text style={styles.textDong}>
-                {currentAdminDong || '위치 정보 로딩 중...'} 이웃로그
+                {currentUpperAdminDong || '위치 정보 로딩 중...'} 이웃로그
             </Text>
             <TouchableOpacity
                 onPress={handleLocationRefreshConfirmation}

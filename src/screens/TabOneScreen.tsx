@@ -70,28 +70,29 @@ export function TabOneScreen() {
   return date.toLocaleDateString('ko-KR');
 };
 
-  useEffect(()=>{
-    const loadAdminDong = async () => {
-      try {
-        const storedAdminDong = await AsyncStorage.getItem('userAdminDong');
-        console.log('현재위치',storedAdminDong);
-        if (storedAdminDong) {
-          const parts = storedAdminDong.split(' ');
-          if (parts.length >= 2) {
-            setCurrentAdminDong(parts.slice(1).join(' '));
-          } else {
-            setCurrentAdminDong(storedAdminDong);
-          }
+  const loadAdminDong = async () => {
+    try {
+      const storedAdminDong = await AsyncStorage.getItem('userAdminDong');
+      console.log('현재위치',storedAdminDong);
+      if (storedAdminDong) {
+        const parts = storedAdminDong.split(' ');
+        if (parts.length >= 2) {
+          setCurrentAdminDong(parts.slice(1).join(' '));
         } else {
-          setCurrentAdminDong(null);
+          setCurrentAdminDong(storedAdminDong);
         }
-      } catch (e) {
-        console.error('AsyncStorage에서 useradminDong 불러오기 실패:',e);
-        setCurrentAdminDong('정보없음')
+      } else {
+        setCurrentAdminDong(null);
       }
+    } catch (e) {
+      console.error('AsyncStorage에서 useradminDong 불러오기 실패:',e);
+      setCurrentAdminDong('정보없음')
     }
+  }
+
+  useEffect(()=>{
     loadAdminDong();
-  },[]);
+  },[AsyncStorage]);
 
   // 좋아요 개수를 가져오는 함수
   const fetchLikesCount = useCallback(async (postId: number) => {
@@ -143,6 +144,7 @@ export function TabOneScreen() {
   // useFocusEffect 훅을 사용하여 화면이 포커스될 때마다 fetchPosts 실행
   useFocusEffect(
     useCallback(() => {
+      loadAdminDong();
       fetchPosts();
       return () => {
         // 화면이 블러(blur)될 때 필요한 클린업 작업 (선택 사항)
