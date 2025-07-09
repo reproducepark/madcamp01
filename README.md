@@ -1,4 +1,8 @@
 # 네이보 (Neighbor) 
+
+
+<img width="2960" height="2406" alt="Image" src="https://github.com/user-attachments/assets/97814248-0b04-4010-8d45-4c7015b3cc63" />
+
 우리 동네 SNS
 
 ---
@@ -27,10 +31,6 @@
 - 이미지 압축 및 삽입 : 이미지를 압축하여 글에 첨부하고, 갤러리에 보이도록 했습니다.
 - 좋아요, 댓글 : 글에 좋아요와 댓글을 달 수 있도록 했습니다. 좋아요 댓글 역시 수정 및 삭제가 가능합니다.
 - 새로고침 : 새로고침 시 다른 사람이 새롭게 작성된 글들을 불러올 수 있고, 위치 정보를 업데이트 할 수 있습니다.
-
-### 실행 화면
-
-<img width="2960" height="2406" alt="Image" src="https://github.com/user-attachments/assets/97814248-0b04-4010-8d45-4c7015b3cc63" />
 
 ### 🚀 기술 스택
 ![React Native](https://img.shields.io/badge/react_native-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
@@ -63,3 +63,6 @@ npm install
 ```
 npx expo start
 ```
+
+### APK 파일
+release에 첨부
