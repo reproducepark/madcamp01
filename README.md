@@ -58,11 +58,18 @@ cd madcamp01
 npm install
 ```
 
-- expo에서 실행
+- expo에서 실행(테스팅)
 
 ```
 npx expo start
 ```
+
+- eas로 apk 빌드
+
+```
+eas build --platform android --profile preview
+```
+
 
 ### APK 파일
 release에 첨부
