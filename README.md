@@ -43,6 +43,7 @@
     - Node.js
     - npm 또는 yarn
     - Expo 앱 설치 및 가입
+    - 백엔드 서버 구동 (https://github.com/reproducepark/madcamp01_backend.git)
 <br/>
 
 - 프로젝트 클론
